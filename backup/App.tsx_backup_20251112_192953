@@ -1,0 +1,914 @@
+// import React, { useState, useEffect } from 'react';
+// import { LandingPage } from './components/LandingPage';
+// import { AuthPage } from './components/AuthPage';
+// import { AuthCallback } from './components/AuthCallback';
+// import { ProfileCreation } from './components/ProfileCreation';
+// import { PersonalityQuestions } from './components/PersonalityQuestions';
+// import { ConfirmationPage } from './components/ConfirmationPage';
+// import { EventsPage } from './components/EventsPage';
+// import { PaymentPage } from './components/PaymentPage';
+// import { ChatRoom } from './components/ChatRoom';
+// import { UserDashboard } from './components/UserDashboard';
+// import { AdminDashboard } from './components/AdminDashboard';
+// import { auth, db } from './utils/supabase';
+
+// export type Screen = 
+//   | 'landing'
+//   | 'auth'
+//   | 'auth-callback'
+//   | 'profile'
+//   | 'personality'
+//   | 'confirmation'
+//   | 'events'
+//   | 'payment'
+//   | 'chat'
+//   | 'dashboard'
+//   | 'admin';
+
+// export type UserProfile = {
+//   id?: string;
+//   email?: string;
+//   name: string;
+//   age: string;
+//   gender: string;
+//   pronouns: string;
+//   workStudy: string;
+//   location: {
+//     apartment: string;
+//     locality: string;
+//     suburb: string;
+//     city: string;
+//   };
+//   personalityAnswers: Record<string, any>;
+//   joinedEvents: string[];
+// };
+
+// export default function App() {
+//   const [currentScreen, setCurrentScreen] = useState<Screen>('landing');
+//   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+//   const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
+//   const [userId, setUserId] = useState<string | null>(null);
+//   const [isAdmin, setIsAdmin] = useState(false);
+//   const [isLoading, setIsLoading] = useState(true);
+
+//   // Check auth state on mount
+//   useEffect(() => {
+//     checkAuthState();
+
+//     // Listen for auth changes
+//     const { data: { subscription } } = auth.onAuthStateChange(async (user) => {
+//       if (user) {
+//         await loadUserData(user.id);
+//       } else {
+//         setUserProfile(null);
+//         setUserId(null);
+//         setIsAdmin(false);
+//         setCurrentScreen('landing');
+//       }
+//     });
+
+//     return () => subscription.unsubscribe();
+//   }, []);
+
+//   const checkAuthState = async () => {
+//     setIsLoading(true);
+//     const { user } = await auth.getCurrentUser();
+    
+//     if (user) {
+//       await loadUserData(user.id);
+//     }
+    
+//     setIsLoading(false);
+//   };
+
+//   const loadUserData = async (authUserId: string) => {
+//     // Check if admin
+//     const adminStatus = await auth.isAdmin();
+//     setIsAdmin(adminStatus);
+
+//     // Load profile
+//     const { profile } = await db.getProfile(authUserId);
+    
+//     if (profile) {
+//       // Profile exists - check if it's complete
+//       const isProfileComplete = profile.name && 
+//                                 profile.age && 
+//                                 profile.gender && 
+//                                 profile.city;
+      
+//       const hasPersonalityAnswers = profile.personality_answers && 
+//                                     Object.keys(profile.personality_answers).length > 0;
+
+//       if (isProfileComplete && hasPersonalityAnswers) {
+//         // Profile is complete, load it and go to events/admin
+//         setUserProfile({
+//           id: profile.id,
+//           email: profile.email,
+//           name: profile.name,
+//           age: profile.age,
+//           gender: profile.gender,
+//           pronouns: profile.pronouns,
+//           workStudy: profile.work_study,
+//           location: {
+//             apartment: profile.apartment || '',
+//             locality: profile.locality || '',
+//             suburb: profile.suburb || '',
+//             city: profile.city || ''
+//           },
+//           personalityAnswers: profile.personality_answers || {},
+//           joinedEvents: profile.joined_events || []
+//         });
+//         setUserId(profile.id);
+//         setCurrentScreen(adminStatus ? 'admin' : 'events');
+//       } else {
+//         // Profile incomplete - determine where to send them
+//         setUserId(authUserId);
+        
+//         if (!isProfileComplete) {
+//           setCurrentScreen('profile');
+//         } else if (!hasPersonalityAnswers) {
+//           // Load partial profile first
+//           setUserProfile({
+//             id: profile.id,
+//             email: profile.email,
+//             name: profile.name,
+//             age: profile.age,
+//             gender: profile.gender,
+//             pronouns: profile.pronouns,
+//             workStudy: profile.work_study,
+//             location: {
+//               apartment: profile.apartment || '',
+//               locality: profile.locality || '',
+//               suburb: profile.suburb || '',
+//               city: profile.city || ''
+//             },
+//             personalityAnswers: {},
+//             joinedEvents: profile.joined_events || []
+//           });
+//           setCurrentScreen('personality');
+//         }
+//       }
+//     } else {
+//       // New user - needs to create profile
+//       setUserId(authUserId);
+//       setCurrentScreen('profile');
+//     }
+//   };
+
+//   const navigateTo = (screen: Screen) => {
+//     setCurrentScreen(screen);
+//   };
+
+//   const updateProfile = (updates: Partial<UserProfile>) => {
+//     setUserProfile(prev => {
+//       if (prev) {
+//         return { ...prev, ...updates };
+//       }
+//       // If prev is null, create a new profile with defaults + updates
+//       return {
+//         name: '',
+//         age: '',
+//         gender: '',
+//         pronouns: '',
+//         workStudy: '',
+//         location: { apartment: '', locality: '', suburb: '', city: '' },
+//         personalityAnswers: {},
+//         joinedEvents: [],
+//         ...updates
+//       };
+//     });
+//   };
+
+//   const saveProfileToBackend = async () => {
+//     if (!userProfile) return;
+
+//     setIsLoading(true);
+//     try {
+//       const result = await db.createProfile(userProfile);
+//       if (result.profile) {
+//         setUserProfile({
+//           id: result.profile.id,
+//           email: result.profile.email,
+//           name: result.profile.name,
+//           age: result.profile.age,
+//           gender: result.profile.gender,
+//           pronouns: result.profile.pronouns,
+//           workStudy: result.profile.work_study,
+//           location: {
+//             apartment: result.profile.apartment || '',
+//             locality: result.profile.locality || '',
+//             suburb: result.profile.suburb || '',
+//             city: result.profile.city || ''
+//           },
+//           personalityAnswers: result.profile.personality_answers || {},
+//           joinedEvents: result.profile.joined_events || []
+//         });
+//         setUserId(result.profile.id);
+//       } else {
+//         console.error('Failed to save profile:', result.error);
+//         alert('Failed to save profile: ' + result.error);
+//       }
+//     } catch (error) {
+//       console.error('Error saving profile:', error);
+//       alert('Error saving profile');
+//     } finally {
+//       setIsLoading(false);
+//     }
+//   };
+
+//   const handleAuthSuccess = (authUserId: string, hasProfile: boolean) => {
+//     loadUserData(authUserId);
+//   };
+
+//   const handleLogout = async () => {
+//     await auth.signOut();
+//     setUserProfile(null);
+//     setUserId(null);
+//     setIsAdmin(false);
+//     setCurrentScreen('landing');
+//   };
+
+//   if (isLoading) {
+//     return (
+//       <div className="min-h-screen bg-white flex items-center justify-center">
+//         <div className="w-16 h-16 border-4 border-black border-t-transparent rounded-full animate-spin"></div>
+//       </div>
+//     );
+//   }
+
+//   const renderScreen = () => {
+//     switch (currentScreen) {
+//       case 'landing':
+//         return <LandingPage onNavigate={navigateTo} />;
+//       case 'auth':
+//         return <AuthPage onNavigate={navigateTo} />;
+//       case 'auth-callback':
+//         return <AuthCallback onAuthSuccess={handleAuthSuccess} />;
+//       case 'profile':
+//         return (
+//           <ProfileCreation
+//             profile={userProfile || {
+//               name: '',
+//               age: '',
+//               gender: '',
+//               pronouns: '',
+//               workStudy: '',
+//               location: {
+//                 apartment: '',
+//                 locality: '',
+//                 suburb: '',
+//                 city: ''
+//               },
+//               personalityAnswers: {},
+//               joinedEvents: []
+//             }}
+//             onUpdateProfile={updateProfile}
+//             onNavigate={navigateTo}
+//           />
+//         );
+//       case 'personality':
+//         return (
+//           <PersonalityQuestions
+//             profile={userProfile || {
+//               name: '',
+//               age: '',
+//               gender: '',
+//               pronouns: '',
+//               workStudy: '',
+//               location: {
+//                 apartment: '',
+//                 locality: '',
+//                 suburb: '',
+//                 city: ''
+//               },
+//               personalityAnswers: {},
+//               joinedEvents: []
+//             }}
+//             onUpdateProfile={updateProfile}
+//             onNavigate={navigateTo}
+//           />
+//         );
+//       case 'confirmation':
+//         return (
+//           <ConfirmationPage
+//             profile={userProfile || {
+//               name: '',
+//               age: '',
+//               gender: '',
+//               pronouns: '',
+//               workStudy: '',
+//               location: {
+//                 apartment: '',
+//                 locality: '',
+//                 suburb: '',
+//                 city: ''
+//               },
+//               personalityAnswers: {},
+//               joinedEvents: []
+//             }}
+//             onNavigate={navigateTo}
+//             onSaveProfile={saveProfileToBackend}
+//             isLoading={false}
+//           />
+//         );
+//       case 'events':
+//         return (
+//           <EventsPage
+//             profile={userProfile || {
+//               name: '',
+//               age: '',
+//               gender: '',
+//               pronouns: '',
+//               workStudy: '',
+//               location: {
+//                 apartment: '',
+//                 locality: '',
+//                 suburb: '',
+//                 city: ''
+//               },
+//               personalityAnswers: {},
+//               joinedEvents: []
+//             }}
+//             userId={userId}
+//             onSelectEvent={setSelectedEvent}
+//             onNavigate={navigateTo}
+//           />
+//         );
+//       case 'payment':
+//         return (
+//           <PaymentPage
+//             eventId={selectedEvent}
+//             onNavigate={navigateTo}
+//           />
+//         );
+//       case 'chat':
+//         return (
+//           <ChatRoom
+//             eventId={selectedEvent}
+//             profile={userProfile || {
+//               name: '',
+//               age: '',
+//               gender: '',
+//               pronouns: '',
+//               workStudy: '',
+//               location: {
+//                 apartment: '',
+//                 locality: '',
+//                 suburb: '',
+//                 city: ''
+//               },
+//               personalityAnswers: {},
+//               joinedEvents: []
+//             }}
+//             onNavigate={navigateTo}
+//           />
+//         );
+//       case 'dashboard':
+//         return (
+//           <UserDashboard
+//             profile={userProfile || {
+//               name: '',
+//               age: '',
+//               gender: '',
+//               pronouns: '',
+//               workStudy: '',
+//               location: {
+//                 apartment: '',
+//                 locality: '',
+//                 suburb: '',
+//                 city: ''
+//               },
+//               personalityAnswers: {},
+//               joinedEvents: []
+//             }}
+//             userId={userId}
+//             onNavigate={navigateTo}
+//             onLogout={handleLogout}
+//           />
+//         );
+//       case 'admin':
+//         return (
+//           <AdminDashboard
+//             onNavigate={navigateTo}
+//             onLogout={handleLogout}
+//           />
+//         );
+//       default:
+//         return <LandingPage onNavigate={navigateTo} />;
+//     }
+//   };
+
+//   return (
+//     <div className="min-h-screen bg-white text-black" style={{ fontFamily: 'Poppins, sans-serif' }}>
+//       {renderScreen()}
+//     </div>
+//   );
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import React, { useState, useEffect } from 'react';
+import { LandingPage } from './components/LandingPage';
+import { AuthPage } from './components/AuthPage';
+import { AuthCallback } from './components/AuthCallback';
+import { ProfileCreation } from './components/ProfileCreation';
+import { PersonalityQuestions } from './components/PersonalityQuestions';
+import { ConfirmationPage } from './components/ConfirmationPage';
+import { EventsPage } from './components/EventsPage';
+import { PaymentPage } from './components/PaymentPage';
+import { ChatRoom } from './components/ChatRoom';
+import { UserDashboard } from './components/UserDashboard';
+import { AdminDashboard } from './components/AdminDashboard';
+import { ResetPasswordPage } from './components/ResetPasswordPage';
+import { auth, db } from './utils/supabase';
+
+export type Screen = 
+  | 'landing'
+  | 'auth'
+  | 'auth-callback'
+  | 'profile'
+  | 'personality'
+  | 'confirmation'
+  | 'events'
+  | 'payment'
+  | 'chat'
+  | 'dashboard'
+  | 'admin'
+  | 'reset-password';
+
+export type UserProfile = {
+  id?: string;
+  email?: string;
+  name: string;
+  age: string;
+  gender: string;
+  pronouns: string;
+  workStudy: string;
+  location: {
+    apartment: string;
+    locality: string;
+    suburb: string;
+    city: string;
+  };
+  personalityAnswers: Record<string, any>;
+  joinedEvents: string[];
+};
+
+export default function App() {
+  const [currentScreen, setCurrentScreen] = useState<Screen>('landing');
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Check auth state on mount
+  useEffect(() => {
+    console.log('🚀 App starting, checking auth state...');
+    
+    // Check if coming from email link
+    const hash = window.location.hash;
+    if (hash && hash.includes('type=recovery')) {
+      console.log('🔑 Password recovery link detected');
+      setCurrentScreen('reset-password');
+      return;
+    }
+    
+    checkAuthState();
+
+    // Listen for auth changes
+    const { data: { subscription } } = auth.onAuthStateChange(async (user) => {
+      console.log('🔄 Auth state changed:', user ? 'User logged in' : 'User logged out');
+      if (user) {
+        // Don't auto-redirect if coming from email link
+        const hash = window.location.hash;
+        if (hash && (hash.includes('type=recovery') || hash.includes('type=signup'))) {
+          console.log('📧 Email link detected, not auto-redirecting');
+          return;
+        }
+        await loadUserData(user.id);
+      } else {
+        setUserProfile(null);
+        setUserId(null);
+        setIsAdmin(false);
+        setCurrentScreen('landing');
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const checkAuthState = async () => {
+    setIsLoading(true);
+    const { user } = await auth.getCurrentUser();
+    
+    console.log('👤 Current user:', user ? user.id : 'No user');
+    
+    if (user) {
+      await loadUserData(user.id);
+    } else {
+      console.log('⚠️ No authenticated user found');
+    }
+    
+    setIsLoading(false);
+  };
+
+  const loadUserData = async (authUserId: string) => {
+    console.log('📥 Loading user data for:', authUserId);
+    
+    // Check if admin
+    const adminStatus = await auth.isAdmin();
+    setIsAdmin(adminStatus);
+    console.log('👮 Is admin:', adminStatus);
+
+    // Load profile
+    const { profile } = await db.getProfile(authUserId);
+    
+    console.log('📋 Profile loaded:', profile);
+    
+    if (profile) {
+      // Profile exists - check if it's complete
+      const isProfileComplete = profile.name && 
+                                profile.age && 
+                                profile.gender && 
+                                profile.city;
+      
+      const hasPersonalityAnswers = profile.personality_answers && 
+                                    Object.keys(profile.personality_answers).length > 0;
+
+      console.log('✅ Profile complete:', isProfileComplete, 'Has personality:', hasPersonalityAnswers);
+
+      if (isProfileComplete && hasPersonalityAnswers) {
+        // Profile is complete, load it and go to dashboard (or admin)
+        const loadedProfile = {
+          id: profile.id,
+          email: profile.email,
+          name: profile.name,
+          age: profile.age,
+          gender: profile.gender,
+          pronouns: profile.pronouns,
+          workStudy: profile.work_study,
+          location: {
+            apartment: profile.apartment || '',
+            locality: profile.locality || '',
+            suburb: profile.suburb || '',
+            city: profile.city || ''
+          },
+          personalityAnswers: profile.personality_answers || {},
+          joinedEvents: profile.joined_events || []
+        };
+        
+        setUserProfile(loadedProfile);
+        setUserId(profile.id);
+        
+        // FIXED: Always go to dashboard (or admin) when profile is complete
+        setCurrentScreen(adminStatus ? 'admin' : 'dashboard');
+        console.log('🎉 Profile complete! Going to:', adminStatus ? 'admin' : 'dashboard');
+      } else {
+        // Profile incomplete - determine where to send them
+        setUserId(authUserId);
+        
+        if (!isProfileComplete) {
+          console.log('⚠️ Profile incomplete, going to profile creation');
+          setCurrentScreen('profile');
+        } else if (!hasPersonalityAnswers) {
+          console.log('⚠️ Missing personality answers, going to personality questions');
+          // Load partial profile first
+          setUserProfile({
+            id: profile.id,
+            email: profile.email,
+            name: profile.name,
+            age: profile.age,
+            gender: profile.gender,
+            pronouns: profile.pronouns,
+            workStudy: profile.work_study,
+            location: {
+              apartment: profile.apartment || '',
+              locality: profile.locality || '',
+              suburb: profile.suburb || '',
+              city: profile.city || ''
+            },
+            personalityAnswers: {},
+            joinedEvents: profile.joined_events || []
+          });
+          setCurrentScreen('personality');
+        }
+      }
+    } else {
+      // New user - needs to create profile
+      console.log('🆕 New user, going to profile creation');
+      setUserId(authUserId);
+      setCurrentScreen('profile');
+    }
+  };
+
+  const navigateTo = (screen: Screen) => {
+    console.log('🧭 Navigating to:', screen);
+    setCurrentScreen(screen);
+  };
+
+  const updateProfile = (updates: Partial<UserProfile>) => {
+    console.log('📝 Updating profile with:', updates);
+    setUserProfile(prev => {
+      if (prev) {
+        return { ...prev, ...updates };
+      }
+      // If prev is null, create a new profile with defaults + updates
+      return {
+        name: '',
+        age: '',
+        gender: '',
+        pronouns: '',
+        workStudy: '',
+        location: { apartment: '', locality: '', suburb: '', city: '' },
+        personalityAnswers: {},
+        joinedEvents: [],
+        ...updates
+      };
+    });
+  };
+
+  const saveProfileToBackend = async () => {
+    if (!userProfile) {
+      console.error('❌ No profile to save!');
+      return;
+    }
+
+    console.log('💾 Saving profile to database...', userProfile);
+    setIsLoading(true);
+    try {
+      const result = await db.createProfile(userProfile);
+      if (result.profile) {
+        console.log('✅ Profile saved successfully!', result.profile);
+        const savedProfile = {
+          id: result.profile.id,
+          email: result.profile.email,
+          name: result.profile.name,
+          age: result.profile.age,
+          gender: result.profile.gender,
+          pronouns: result.profile.pronouns,
+          workStudy: result.profile.work_study,
+          location: {
+            apartment: result.profile.apartment || '',
+            locality: result.profile.locality || '',
+            suburb: result.profile.suburb || '',
+            city: result.profile.city || ''
+          },
+          personalityAnswers: result.profile.personality_answers || {},
+          joinedEvents: result.profile.joined_events || []
+        };
+        setUserProfile(savedProfile);
+        setUserId(result.profile.id);
+        
+        // FIXED: Go to dashboard after saving, not events
+        console.log('🎉 Redirecting to dashboard');
+        setCurrentScreen(isAdmin ? 'admin' : 'dashboard');
+      } else {
+        console.error('❌ Failed to save profile:', result.error);
+        alert('Failed to save profile: ' + result.error);
+      }
+    } catch (error) {
+      console.error('❌ Error saving profile:', error);
+      alert('Error saving profile');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAuthSuccess = (authUserId: string, hasProfile: boolean) => {
+    console.log('🔐 Auth success! User ID:', authUserId, 'Has profile:', hasProfile);
+    loadUserData(authUserId);
+  };
+
+  const handleLogout = async () => {
+    console.log('👋 Logging out...');
+    await auth.signOut();
+    setUserProfile(null);
+    setUserId(null);
+    setIsAdmin(false);
+    setCurrentScreen('landing');
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="w-16 h-16 border-4 border-black border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  const renderScreen = () => {
+    switch (currentScreen) {
+      case 'landing':
+        return <LandingPage onNavigate={navigateTo} />;
+      case 'auth':
+        return <AuthPage onNavigate={navigateTo} />;
+      case 'auth-callback':
+        return <AuthCallback onAuthSuccess={handleAuthSuccess} />;
+      case 'profile':
+        return (
+          <ProfileCreation
+            profile={userProfile || {
+              name: '',
+              age: '',
+              gender: '',
+              pronouns: '',
+              workStudy: '',
+              location: {
+                apartment: '',
+                locality: '',
+                suburb: '',
+                city: ''
+              },
+              personalityAnswers: {},
+              joinedEvents: []
+            }}
+            onUpdateProfile={updateProfile}
+            onNavigate={navigateTo}
+          />
+        );
+      case 'personality':
+        return (
+          <PersonalityQuestions
+            profile={userProfile || {
+              name: '',
+              age: '',
+              gender: '',
+              pronouns: '',
+              workStudy: '',
+              location: {
+                apartment: '',
+                locality: '',
+                suburb: '',
+                city: ''
+              },
+              personalityAnswers: {},
+              joinedEvents: []
+            }}
+            onUpdateProfile={updateProfile}
+            onNavigate={navigateTo}
+            onSaveProfile={saveProfileToBackend}
+          />
+        );
+      case 'confirmation':
+        return (
+          <ConfirmationPage
+            profile={userProfile || {
+              name: '',
+              age: '',
+              gender: '',
+              pronouns: '',
+              workStudy: '',
+              location: {
+                apartment: '',
+                locality: '',
+                suburb: '',
+                city: ''
+              },
+              personalityAnswers: {},
+              joinedEvents: []
+            }}
+            onNavigate={navigateTo}
+            onSaveProfile={saveProfileToBackend}
+            isLoading={false}
+          />
+        );
+      case 'events':
+        return (
+          <EventsPage
+            profile={userProfile || {
+              name: '',
+              age: '',
+              gender: '',
+              pronouns: '',
+              workStudy: '',
+              location: {
+                apartment: '',
+                locality: '',
+                suburb: '',
+                city: ''
+              },
+              personalityAnswers: {},
+              joinedEvents: []
+            }}
+            userId={userId}
+            onSelectEvent={setSelectedEvent}
+            onNavigate={navigateTo}
+          />
+        );
+      case 'payment':
+        return (
+          <PaymentPage
+            eventId={selectedEvent}
+            userId={userId}
+            onNavigate={navigateTo}
+          />
+        );
+      case 'chat':
+        return (
+          <ChatRoom
+            eventId={selectedEvent}
+            profile={userProfile || {
+              name: '',
+              age: '',
+              gender: '',
+              pronouns: '',
+              workStudy: '',
+              location: {
+                apartment: '',
+                locality: '',
+                suburb: '',
+                city: ''
+              },
+              personalityAnswers: {},
+              joinedEvents: []
+            }}
+            userId={userId}
+            onNavigate={navigateTo}
+          />
+        );
+      case 'dashboard':
+        return (
+          <UserDashboard
+            profile={userProfile || {
+              name: '',
+              age: '',
+              gender: '',
+              pronouns: '',
+              workStudy: '',
+              location: {
+                apartment: '',
+                locality: '',
+                suburb: '',
+                city: ''
+              },
+              personalityAnswers: {},
+              joinedEvents: []
+            }}
+            userId={userId}
+            onNavigate={navigateTo}
+            onLogout={handleLogout}
+          />
+        );
+      case 'admin':
+        return (
+          <AdminDashboard
+            onNavigate={navigateTo}
+            onLogout={handleLogout}
+          />
+        );
+      default:
+        return <LandingPage onNavigate={navigateTo} />;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-white text-black" style={{ fontFamily: 'Poppins, sans-serif' }}>
+      {renderScreen()}
+    </div>
+  );
+}

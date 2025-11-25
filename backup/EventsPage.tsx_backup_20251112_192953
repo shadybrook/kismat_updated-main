@@ -1,0 +1,1231 @@
+// import React, { useState, useEffect } from 'react';
+// import { Button } from './ui/button';
+// import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+// import { Badge } from './ui/badge';
+// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+// import { Input } from './ui/input';
+// import { Label } from './ui/label';
+// import { UserProfile } from '../App';
+// import { MapPin, Clock, Users, MessageCircle } from 'lucide-react';
+// import { db } from '../utils/supabase';
+
+// interface EventsPageProps {
+//   profile: UserProfile;
+//   userId: string | null;
+//   onSelectEvent: (eventId: string) => void;
+//   onNavigate: (screen: string) => void;
+// }
+
+// interface Event {
+//   id: string;
+//   title: string;
+//   date: string;
+//   time: string;
+//   location: string;
+//   spots_left: number;
+//   total_spots: number;
+//   participants: string[];
+//   price: number;
+//   category: string;
+//   description: string;
+//   created_by?: string;
+// }
+
+// export function EventsPage({ profile, userId, onSelectEvent, onNavigate }: EventsPageProps) {
+//   const [events, setEvents] = useState<Event[]>([]);
+//   const [selectedCategory, setSelectedCategory] = useState('all');
+//   const [showCreateForm, setShowCreateForm] = useState(false);
+//   const [isLoading, setIsLoading] = useState(false);
+//   const [createEventForm, setCreateEventForm] = useState({
+//     title: '',
+//     eventType: '',
+//     location: '',
+//     peopleCount: '',
+//     date: '',
+//     time: '',
+//     price: 100,
+//     description: ''
+//   });
+
+//   useEffect(() => {
+//     loadEvents();
+//   }, []);
+
+//   const loadEvents = async () => {
+//     setIsLoading(true);
+//     try {
+//       const result = await db.getEvents();
+//       if (result.events) {
+//         setEvents(result.events);
+//       } else {
+//         console.error('Failed to load events:', result.error);
+//       }
+//     } catch (error) {
+//       console.error('Error loading events:', error);
+//     } finally {
+//       setIsLoading(false);
+//     }
+//   };
+
+//   const handleJoinEvent = async (eventId: string) => {
+//     if (!userId) {
+//       alert('Please log in to join events');
+//       return;
+//     }
+
+//     try {
+//       const result = await db.joinEvent(eventId, userId, profile.name);
+//       if (result.success) {
+//         await loadEvents();
+//         onSelectEvent(eventId);
+//         onNavigate('payment');
+//       } else {
+//         alert(`Failed to join event: ${result.error}`);
+//       }
+//     } catch (error) {
+//       console.error('Error joining event:', error);
+//       alert('Failed to join event. Please try again.');
+//     }
+//   };
+
+//   const handleOpenChat = (eventId: string) => {
+//     onSelectEvent(eventId);
+//     onNavigate('chat');
+//   };
+
+//   const isUserInEvent = (event: Event) => {
+//     return event.participants.includes(profile.name) || event.created_by === userId;
+//   };
+
+//   const categories = [
+//     { id: 'all', label: 'All Events' },
+//     { id: 'food', label: 'Food & Drinks' },
+//     { id: 'activities', label: 'Activities' },
+//     { id: 'sports', label: 'Sports' },
+//     { id: 'girls-only', label: 'Girls Only' }
+//   ];
+
+//   const filteredEvents = selectedCategory === 'all' 
+//     ? events 
+//     : events.filter(event => event.category === selectedCategory);
+
+//   const handleCreateEventSubmit = async (e: React.FormEvent) => {
+//     e.preventDefault();
+//     setIsLoading(true);
+    
+//     try {
+//       const totalSpots = parseInt(createEventForm.peopleCount.split('-')[1]) || 4;
+      
+//       const eventData = {
+//         title: createEventForm.title || `${createEventForm.eventType} Event`,
+//         date: createEventForm.date || 'TBD',
+//         time: createEventForm.time || 'TBD',
+//         location: createEventForm.location,
+//         distance: 'Custom location',
+//         spotsLeft: totalSpots - 1, // Creator takes 1 spot
+//         totalSpots: totalSpots,
+//         participants: [profile.name], // Creator is first participant
+//         price: createEventForm.price,
+//         category: getCategoryFromEventType(createEventForm.eventType),
+//         description: createEventForm.description || `Join us for ${createEventForm.eventType.toLowerCase()}!`,
+//         createdBy: userId
+//       };
+
+//       const result = await db.createEvent(eventData);
+      
+//       if (result.success) {
+//         alert('🎉 Event created successfully!\n\nYour event is now live and visible to everyone!');
+        
+//         setShowCreateForm(false);
+//         setCreateEventForm({
+//           title: '',
+//           eventType: '',
+//           location: '',
+//           peopleCount: '',
+//           date: '',
+//           time: '',
+//           price: 100,
+//           description: ''
+//         });
+        
+//         // Reload events to show the new one
+//         await loadEvents();
+//       } else {
+//         alert(`Failed: ${result.error}`);
+//       }
+//     } catch (error) {
+//       console.error('Error:', error);
+//       alert('Failed to create event');
+//     } finally {
+//       setIsLoading(false);
+//     }
+//   };
+
+//   const getCategoryFromEventType = (eventType: string): string => {
+//     const categoryMap: Record<string, string> = {
+//       'dinner': 'food',
+//       'drinks': 'food',
+//       'coffee': 'food',
+//       'bowling': 'activities',
+//       'movie': 'activities',
+//       'cultural': 'activities',
+//       'sports': 'sports',
+//       'other': 'activities'
+//     };
+//     return categoryMap[eventType] || 'activities';
+//   };
+
+//   return (
+//     <div className="min-h-screen bg-white pb-20">
+//       {/* Header with Profile Button */}
+//       <div className="bg-black text-white px-6 py-8">
+//         <div className="flex items-center justify-between">
+//           <div>
+//             <h1 className="text-xl mb-2" style={{ fontFamily: 'Poppins, sans-serif', fontWeight: '500' }}>
+//               Hey {profile.name}!
+//             </h1>
+//             <p className="text-gray-300 text-sm" style={{ fontFamily: 'Poppins, sans-serif' }}>
+//               Choose your timing and activity to get matched with like-minded people.
+//             </p>
+//           </div>
+//           <Button
+//             onClick={() => onNavigate('dashboard')}
+//             variant="ghost"
+//             size="sm"
+//             className="text-white hover:bg-gray-800"
+//           >
+//             <Users className="w-5 h-5" />
+//           </Button>
+//         </div>
+//       </div>
+
+//       <div className="px-6 py-6 space-y-6">
+//         <div>
+//           <h2 className="text-lg mb-4" style={{ fontFamily: 'Poppins, sans-serif', fontWeight: '500' }}>
+//             Choose an activity category:
+//           </h2>
+//           <div className="grid grid-cols-2 gap-3 mb-6">
+//             {categories.map((category) => (
+//               <Button
+//                 key={category.id}
+//                 variant={selectedCategory === category.id ? "default" : "outline"}
+//                 onClick={() => setSelectedCategory(category.id)}
+//                 className="h-auto p-4"
+//                 style={{ fontFamily: 'Poppins, sans-serif' }}
+//               >
+//                 {category.label}
+//               </Button>
+//             ))}
+//           </div>
+//         </div>
+
+//         <div>
+//           <h2 className="text-lg mb-4" style={{ fontFamily: 'Poppins, sans-serif', fontWeight: '500' }}>
+//             Join Existing Activities
+//           </h2>
+//           {isLoading ? (
+//             <div className="text-center py-8">
+//               <p className="text-gray-500">Loading events...</p>
+//             </div>
+//           ) : filteredEvents.length === 0 ? (
+//             <div className="text-center py-8">
+//               <p className="text-gray-500">No events found for this category.</p>
+//             </div>
+//           ) : (
+//             <div className="space-y-4">
+//               {filteredEvents.map((event) => {
+//                 const userInEvent = isUserInEvent(event);
+//                 const isFull = event.spots_left === 0;
+                
+//                 return (
+//                   <Card key={event.id} className="border-gray-200">
+//                     <CardHeader className="pb-3">
+//                       <div className="flex justify-between items-start">
+//                         <div>
+//                           <CardTitle className="text-lg" style={{ fontFamily: 'Poppins, sans-serif' }}>
+//                             {event.title}
+//                           </CardTitle>
+//                           <div className="flex items-center space-x-4 text-sm text-gray-600 mt-2">
+//                             <div className="flex items-center space-x-1">
+//                               <Clock className="w-4 h-4" />
+//                               <span>{event.time} {event.date}</span>
+//                             </div>
+//                             <div className="flex items-center space-x-1">
+//                               <MapPin className="w-4 h-4" />
+//                               <span>{event.location}</span>
+//                             </div>
+//                           </div>
+//                         </div>
+//                         <Badge variant={event.spots_left > 0 ? "default" : "secondary"}>
+//                           {isFull ? 'FULL' : `${event.spots_left} spots left`}
+//                         </Badge>
+//                       </div>
+//                     </CardHeader>
+//                     <CardContent>
+//                       <div className="space-y-3">
+//                         <p className="text-sm text-gray-600">{event.description}</p>
+
+//                         {event.participants.length > 0 && (
+//                           <div className="flex items-center space-x-2">
+//                             <Users className="w-4 h-4 text-gray-500" />
+//                             <span className="text-sm text-gray-600">
+//                               {event.participants.length}/{event.total_spots} joined: {event.participants.slice(0, 3).join(', ')}
+//                               {event.participants.length > 3 && ` +${event.participants.length - 3} more`}
+//                             </span>
+//                           </div>
+//                         )}
+
+//                         <div className="flex items-center justify-between pt-3">
+//                           <div className="text-sm">
+//                             <span className="text-gray-600">Platform fee: </span>
+//                             <span className="text-green-600">₹{event.price}</span>
+//                           </div>
+                          
+//                           {userInEvent ? (
+//                             <Button
+//                               onClick={() => handleOpenChat(event.id)}
+//                               className="bg-blue-600 text-white hover:bg-blue-700"
+//                               style={{ fontFamily: 'Poppins, sans-serif' }}
+//                             >
+//                               <MessageCircle className="w-4 h-4 mr-2" />
+//                               Open Chat
+//                             </Button>
+//                           ) : (
+//                             <Button
+//                               onClick={() => handleJoinEvent(event.id)}
+//                               disabled={isFull}
+//                               className="bg-black text-white hover:bg-gray-800"
+//                               style={{ fontFamily: 'Poppins, sans-serif' }}
+//                             >
+//                               {isFull ? 'Fully Booked' : 'Join this plan'}
+//                             </Button>
+//                           )}
+//                         </div>
+//                       </div>
+//                     </CardContent>
+//                   </Card>
+//                 );
+//               })}
+//             </div>
+//           )}
+//         </div>
+
+//         <Card className="border-gray-200 border-dashed">
+//           <CardContent className="p-6">
+//             {!showCreateForm ? (
+//               <div className="text-center">
+//                 <h3 className="text-lg mb-2" style={{ fontFamily: 'Poppins, sans-serif', fontWeight: '500' }}>
+//                   CREATE YOUR OWN PLAN
+//                 </h3>
+//                 <p className="text-sm text-gray-600 mb-4">
+//                   Have something specific in mind? Create your own event and find people to join you.
+//                 </p>
+//                 <Button 
+//                   onClick={() => setShowCreateForm(true)}
+//                   variant="outline" 
+//                   className="w-full"
+//                   style={{ fontFamily: 'Poppins, sans-serif' }}
+//                 >
+//                   Create Event
+//                 </Button>
+//               </div>
+//             ) : (
+//               <form onSubmit={handleCreateEventSubmit} className="space-y-4">
+//                 <h3 className="text-lg mb-4" style={{ fontFamily: 'Poppins, sans-serif', fontWeight: '500' }}>
+//                   Create Your Event
+//                 </h3>
+                
+//                 <div>
+//                   <Label htmlFor="eventType">What kind of event?</Label>
+//                   <Select onValueChange={(value) => setCreateEventForm(prev => ({...prev, eventType: value}))}>
+//                     <SelectTrigger className="border-gray-300">
+//                       <SelectValue placeholder="Choose event type" />
+//                     </SelectTrigger>
+//                     <SelectContent>
+//                       <SelectItem value="dinner">Dinner</SelectItem>
+//                       <SelectItem value="drinks">Drinks</SelectItem>
+//                       <SelectItem value="coffee">Coffee</SelectItem>
+//                       <SelectItem value="bowling">Bowling</SelectItem>
+//                       <SelectItem value="sports">Sports Activity</SelectItem>
+//                       <SelectItem value="movie">Movie</SelectItem>
+//                       <SelectItem value="cultural">Cultural Event</SelectItem>
+//                       <SelectItem value="other">Other</SelectItem>
+//                     </SelectContent>
+//                   </Select>
+//                 </div>
+
+//                 <div>
+//                   <Label htmlFor="title">Event Title (Optional)</Label>
+//                   <Input
+//                     id="title"
+//                     value={createEventForm.title}
+//                     onChange={(e) => setCreateEventForm(prev => ({...prev, title: e.target.value}))}
+//                     placeholder="Custom title for your event"
+//                     className="border-gray-300"
+//                   />
+//                 </div>
+
+//                 <div>
+//                   <Label htmlFor="location">Where?</Label>
+//                   <Input
+//                     id="location"
+//                     value={createEventForm.location}
+//                     onChange={(e) => setCreateEventForm(prev => ({...prev, location: e.target.value}))}
+//                     placeholder="Enter location or area"
+//                     className="border-gray-300"
+//                     required
+//                   />
+//                 </div>
+
+//                 <div className="grid grid-cols-2 gap-4">
+//                   <div>
+//                     <Label htmlFor="date">Date</Label>
+//                     <Input
+//                       id="date"
+//                       type="date"
+//                       value={createEventForm.date}
+//                       onChange={(e) => setCreateEventForm(prev => ({...prev, date: e.target.value}))}
+//                       className="border-gray-300"
+//                     />
+//                   </div>
+//                   <div>
+//                     <Label htmlFor="time">Time</Label>
+//                     <Input
+//                       id="time"
+//                       type="time"
+//                       value={createEventForm.time}
+//                       onChange={(e) => setCreateEventForm(prev => ({...prev, time: e.target.value}))}
+//                       className="border-gray-300"
+//                     />
+//                   </div>
+//                 </div>
+
+//                 <div>
+//                   <Label htmlFor="description">Description (Optional)</Label>
+//                   <Input
+//                     id="description"
+//                     value={createEventForm.description}
+//                     onChange={(e) => setCreateEventForm(prev => ({...prev, description: e.target.value}))}
+//                     placeholder="Tell people what to expect..."
+//                     className="border-gray-300"
+//                   />
+//                 </div>
+
+//                 <div>
+//                   <Label htmlFor="peopleCount">Total people (including you)?</Label>
+//                   <Select onValueChange={(value) => setCreateEventForm(prev => ({...prev, peopleCount: value}))}>
+//                     <SelectTrigger className="border-gray-300">
+//                       <SelectValue placeholder="Choose total group size" />
+//                     </SelectTrigger>
+//                     <SelectContent>
+//                       <SelectItem value="2-3">2-3 people</SelectItem>
+//                       <SelectItem value="4-5">4-5 people</SelectItem>
+//                       <SelectItem value="6-8">6-8 people</SelectItem>
+//                       <SelectItem value="8+">8+ people</SelectItem>
+//                     </SelectContent>
+//                   </Select>
+//                   <p className="text-xs text-gray-500 mt-1">
+//                     You'll be automatically added as the first participant
+//                   </p>
+//                 </div>
+
+//                 <div className="flex space-x-2 pt-4">
+//                   <Button
+//                     type="button"
+//                     onClick={() => setShowCreateForm(false)}
+//                     variant="outline"
+//                     className="flex-1"
+//                     disabled={isLoading}
+//                   >
+//                     Cancel
+//                   </Button>
+//                   <Button
+//                     type="submit"
+//                     className="flex-1 bg-black text-white hover:bg-gray-800"
+//                     disabled={isLoading || !createEventForm.eventType || !createEventForm.location}
+//                   >
+//                     {isLoading ? 'Creating...' : 'Create Event'}
+//                   </Button>
+//                 </div>
+//               </form>
+//             )}
+//           </CardContent>
+//         </Card>
+//       </div>
+
+//       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4">
+//         <div className="max-w-md mx-auto">
+//           <Button
+//             onClick={() => onNavigate('dashboard')}
+//             variant="outline"
+//             className="w-full"
+//             style={{ fontFamily: 'Poppins, sans-serif' }}
+//           >
+//             My Dashboard
+//           </Button>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import React, { useState, useEffect } from 'react';
+import { Button } from './ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Badge } from './ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { UserProfile } from '../App';
+import { MapPin, Clock, Users, MessageCircle } from 'lucide-react';
+import { db } from '../utils/supabase';
+
+interface EventsPageProps {
+  profile: UserProfile;
+  userId: string | null;
+  onSelectEvent: (eventId: string) => void;
+  onNavigate: (screen: string) => void;
+}
+
+interface Event {
+  id: string;
+  title: string;
+  date: string;
+  time: string;
+  location: string;
+  spots_left: number;
+  total_spots: number;
+  participants: string[];
+  price: number;
+  category: string;
+  description: string;
+  created_by?: string;
+  event_filled?: boolean;
+  min_participants?: number;
+  creator_paid?: boolean;
+}
+
+export function EventsPage({ profile, userId, onSelectEvent, onNavigate }: EventsPageProps) {
+  const [events, setEvents] = useState<Event[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isGirlsOnly, setIsGirlsOnly] = useState(false);
+  const [creatorGroupSize, setCreatorGroupSize] = useState<number>(1);
+  const [additionalPeopleRange, setAdditionalPeopleRange] = useState<string>('');
+  const [customPeopleCount, setCustomPeopleCount] = useState<string>('');
+  const [userPaidEvents, setUserPaidEvents] = useState<Set<string>>(new Set());
+  const [createEventForm, setCreateEventForm] = useState({
+    title: '',
+    eventType: '',
+    location: '',
+    peopleCount: '',
+    date: '',
+    time: '',
+    price: 100,
+    description: ''
+  });
+
+  useEffect(() => {
+    console.log('👤 EventsPage loaded with profile:', {
+      name: profile.name,
+      gender: profile.gender,
+      userId: userId
+    });
+    loadEvents();
+    loadUserPaidEvents();
+  }, []);
+
+  const loadEvents = async () => {
+    setIsLoading(true);
+    try {
+      console.log('🔄 Loading events with profile gender:', profile.gender);
+      const result = await db.getEvents(false, profile.gender);
+      if (result.events) {
+        console.log('✅ Events loaded:', result.events.length);
+        console.log('📋 Events:', result.events.map(e => ({
+          title: e.title,
+          girls_only: e.girls_only
+        })));
+        setEvents(result.events);
+      } else {
+        console.error('Failed to load events:', result.error);
+      }
+    } catch (error) {
+      console.error('Error loading events:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadUserPaidEvents = async () => {
+    if (!userId) {
+      console.log('⚠️ No userId - cannot load paid events');
+      return;
+    }
+    try {
+      console.log('💰 Loading paid events for user:', userId);
+      const result = await db.getUserEvents(userId);
+      console.log('💰 getUserEvents result:', result);
+      if (result.events) {
+        console.log('💰 Raw events from getUserEvents:', result.events);
+        const paidEventIds = new Set(result.events.map((e: any) => e.id));
+        console.log('✅ User has paid for these event IDs:', Array.from(paidEventIds));
+        setUserPaidEvents(paidEventIds);
+      } else {
+        console.log('⚠️ No paid events found or error:', result.error);
+        setUserPaidEvents(new Set());
+      }
+    } catch (error) {
+      console.error('❌ Error loading user events:', error);
+      setUserPaidEvents(new Set());
+    }
+  };
+
+  const calculateCreatorPayment = (groupSize: number) => {
+    return groupSize * 100;
+  };
+
+  const handleJoinEvent = async (eventId: string) => {
+    if (!userId) {
+      alert('Please log in to join events');
+      return;
+    }
+    try {
+      // Store pending join in localStorage - don't add to participants yet
+      localStorage.setItem('pendingJoinEventId', eventId);
+      localStorage.setItem('pendingJoinUserId', userId);
+      localStorage.setItem('pendingJoinUserName', profile.name);
+      
+      // Navigate to payment
+      onSelectEvent(eventId);
+      onNavigate('payment');
+    } catch (error) {
+      console.error('Error preparing to join event:', error);
+      alert('Failed to join event. Please try again.');
+    }
+  };
+
+  const handleOpenChat = (eventId: string) => {
+    onSelectEvent(eventId);
+    onNavigate('chat');
+  };
+
+  const isUserInEvent = (event: Event) => {
+    // Safety check - if no userId, user is definitely not in event
+    if (!userId) {
+      console.log('⚠️ No userId - user cannot be in event');
+      return false;
+    }
+    
+    // User has paid and is in event_participants table
+    const hasPaid = userPaidEvents.has(event.id);
+    
+    // User is the creator AND has paid their creator fee
+    const isCreatorAndPaid = event.created_by === userId && event.creator_paid === true;
+    
+    console.log(`🔍 isUserInEvent check for "${event.title}":`, {
+      eventId: event.id,
+      userId,
+      createdBy: event.created_by,
+      creatorPaid: event.creator_paid,
+      hasPaid,
+      isCreatorAndPaid,
+      userPaidEventsSize: userPaidEvents.size,
+      result: hasPaid || isCreatorAndPaid
+    });
+    
+    return hasPaid || isCreatorAndPaid;
+  };
+
+  const categories = [
+    { id: 'all', label: 'All Events' },
+    { id: 'food', label: 'Food & Drinks' },
+    { id: 'activities', label: 'Activities' },
+    { id: 'sports', label: 'Sports' },
+    { id: 'girls-only', label: 'Girls Only' }
+  ];
+
+  const filteredEvents = selectedCategory === 'all' 
+    ? events 
+    : events.filter(event => event.category === selectedCategory);
+
+  const handleCreateEventSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (creatorGroupSize > 5) {
+      alert('Maximum group size is 5 people');
+      return;
+    }
+    
+    if (!additionalPeopleRange) {
+      alert('Please select how many more people you need');
+      return;
+    }
+    
+    setIsLoading(true);
+    
+    try {
+      let additionalPeople: number;
+      if (additionalPeopleRange === 'custom') {
+        additionalPeople = parseInt(customPeopleCount) || 1;
+      } else if (additionalPeopleRange === '6+') {
+        additionalPeople = 10;
+      } else {
+        additionalPeople = parseInt(additionalPeopleRange.split('-')[1]);
+      }
+      
+      const totalSpots = creatorGroupSize + additionalPeople;
+      const creatorPaymentAmount = calculateCreatorPayment(creatorGroupSize);
+      
+      const eventDateTime = new Date(`${createEventForm.date}T${createEventForm.time}`);
+      const refundAfterEvent = new Date(eventDateTime.getTime() + (1 * 60 * 60 * 1000));
+      
+      const eventData = {
+        title: createEventForm.title || `${createEventForm.eventType} Event`,
+        date: createEventForm.date || 'TBD',
+        time: createEventForm.time || 'TBD',
+        location: createEventForm.location,
+        distance: 'Custom location',
+        spotsLeft: additionalPeople,
+        totalSpots: totalSpots,
+        participants: [],
+        price: 100,
+        category: getCategoryFromEventType(createEventForm.eventType),
+        description: createEventForm.description || `Join us for ${createEventForm.eventType.toLowerCase()}!`,
+        createdBy: userId,
+        girlsOnly: isGirlsOnly, // THIS IS THE CRITICAL LINE - MUST PASS isGirlsOnly state
+        creatorGroupSize: creatorGroupSize,
+        creatorPaymentAmount: creatorPaymentAmount,
+        minParticipants: creatorGroupSize + 1,
+        maxParticipants: totalSpots,
+        creatorPaid: false,
+        refundAfterEvent: refundAfterEvent.toISOString(),
+        eventFilled: false
+      };
+      
+      console.log('🚨 CREATING EVENT WITH DATA:', {
+        title: eventData.title,
+        girlsOnly: eventData.girlsOnly,
+        isGirlsOnlyState: isGirlsOnly,
+        category: eventData.category
+      });
+
+      const result = await db.createEvent(eventData);
+      
+      if (result.success) {
+        onSelectEvent(result.event.id);
+        
+        localStorage.setItem('pendingPaymentAmount', creatorPaymentAmount.toString());
+        localStorage.setItem('pendingPaymentEventId', result.event.id);
+        
+        onNavigate('payment');
+        
+        alert(`🎉 Event created!\n\nYou need ${additionalPeople} more ${additionalPeople === 1 ? 'person' : 'people'} to join.\n\n💰 Platform fee: ₹${creatorPaymentAmount}\n\n✅ Chat opens when at least 1 person joins!\n\n🔄 Full refund if NO ONE joins by ${createEventForm.date} at ${createEventForm.time}`);
+        
+        setShowCreateForm(false);
+        setCreateEventForm({
+          title: '',
+          eventType: '',
+          location: '',
+          peopleCount: '',
+          date: '',
+          time: '',
+          price: 100,
+          description: ''
+        });
+        setCreatorGroupSize(1);
+        setIsGirlsOnly(false);
+        setAdditionalPeopleRange('');
+        setCustomPeopleCount('');
+      } else {
+        alert(`Failed: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Failed to create event');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getCategoryFromEventType = (eventType: string): string => {
+    const categoryMap: Record<string, string> = {
+      'dinner': 'food',
+      'drinks': 'food',
+      'coffee': 'food',
+      'bowling': 'activities',
+      'movie': 'activities',
+      'cultural': 'activities',
+      'sports': 'sports',
+      'other': 'activities'
+    };
+    return categoryMap[eventType] || 'activities';
+  };
+
+  return (
+    <div className="min-h-screen bg-white pb-20">
+      <div className="bg-black text-white px-6 py-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl mb-2" style={{ fontFamily: 'Poppins, sans-serif', fontWeight: '500' }}>
+              Hey {profile.name}!
+            </h1>
+            <p className="text-gray-300 text-sm" style={{ fontFamily: 'Poppins, sans-serif' }}>
+              Choose your timing and activity to get matched with like-minded people.
+            </p>
+          </div>
+          <Button
+            onClick={() => onNavigate('dashboard')}
+            variant="ghost"
+            size="sm"
+            className="text-white hover:bg-gray-800"
+          >
+            <Users className="w-5 h-5" />
+          </Button>
+        </div>
+      </div>
+
+      <div className="px-6 py-6 space-y-6">
+        <div>
+          <h2 className="text-lg mb-4" style={{ fontFamily: 'Poppins, sans-serif', fontWeight: '500' }}>
+            Choose an activity category:
+          </h2>
+          <div className="grid grid-cols-2 gap-3 mb-6">
+            {categories.map((category) => (
+              <Button
+                key={category.id}
+                variant={selectedCategory === category.id ? "default" : "outline"}
+                onClick={() => setSelectedCategory(category.id)}
+                className="h-auto p-4"
+                style={{ fontFamily: 'Poppins, sans-serif' }}
+              >
+                {category.label}
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-lg mb-4" style={{ fontFamily: 'Poppins, sans-serif', fontWeight: '500' }}>
+            Join Existing Activities
+          </h2>
+          {isLoading ? (
+            <div className="text-center py-8">
+              <p className="text-gray-500">Loading events...</p>
+            </div>
+          ) : filteredEvents.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-500">No events found for this category.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {filteredEvents.map((event) => {
+                console.log(`\n🎫 Rendering event card: "${event.title}"`, {
+                  eventId: event.id,
+                  createdBy: event.created_by,
+                  currentUserId: userId,
+                  creatorPaid: event.creator_paid,
+                  userPaidEventsSet: Array.from(userPaidEvents),
+                  hasEventIdInSet: userPaidEvents.has(event.id)
+                });
+                
+                const userInEvent = isUserInEvent(event);
+                const isFull = event.spots_left === 0;
+                
+                console.log(`🎫 "${event.title}" - userInEvent: ${userInEvent}, isFull: ${isFull}`);
+                
+                return (
+                  <Card key={event.id} className="border-gray-200">
+                    <CardHeader className="pb-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle className="text-lg" style={{ fontFamily: 'Poppins, sans-serif' }}>
+                            {event.title}
+                          </CardTitle>
+                          <div className="flex items-center space-x-4 text-sm text-gray-600 mt-2">
+                            <div className="flex items-center space-x-1">
+                              <Clock className="w-4 h-4" />
+                              <span>{event.time} {event.date}</span>
+                            </div>
+                            <div className="flex items-center space-x-1">
+                              <MapPin className="w-4 h-4" />
+                              <span>{event.location}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <Badge variant={event.spots_left > 0 ? "default" : "secondary"}>
+                            {isFull ? 'FULL' : `${event.spots_left} spots left`}
+                          </Badge>
+                          {event.event_filled && (
+                            <Badge className="bg-green-500 text-white">
+                              💬 Chat Open
+                            </Badge>
+                          )}
+                          {!event.event_filled && event.min_participants && event.participants.length < event.min_participants && (
+                            <Badge className="bg-yellow-500 text-white">
+                              Waiting for {event.min_participants - event.participants.length} more
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        <p className="text-sm text-gray-600">{event.description}</p>
+
+                        <div className="flex items-center justify-end pt-3">
+                          {userInEvent ? (
+                            <Button
+                              onClick={() => handleOpenChat(event.id)}
+                              className="bg-blue-600 text-white hover:bg-blue-700"
+                              style={{ fontFamily: 'Poppins, sans-serif' }}
+                            >
+                              <MessageCircle className="w-4 h-4 mr-2" />
+                              Open Chat
+                            </Button>
+                          ) : (
+                            <Button
+                              onClick={() => handleJoinEvent(event.id)}
+                              disabled={isFull}
+                              className="bg-black text-white hover:bg-gray-800"
+                              style={{ fontFamily: 'Poppins, sans-serif' }}
+                            >
+                              {isFull ? 'Fully Booked' : 'Join'}
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <Card className="border-gray-200 border-dashed">
+          <CardContent className="p-6">
+            {!showCreateForm ? (
+              <div className="text-center">
+                <h3 className="text-lg mb-2" style={{ fontFamily: 'Poppins, sans-serif', fontWeight: '500' }}>
+                  CREATE YOUR OWN PLAN
+                </h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Have something specific in mind? Create your own event and find people to join you.
+                </p>
+                <Button 
+                  onClick={() => setShowCreateForm(true)}
+                  variant="outline" 
+                  className="w-full"
+                  style={{ fontFamily: 'Poppins, sans-serif' }}
+                >
+                  Create Event
+                </Button>
+              </div>
+            ) : (
+              <form onSubmit={handleCreateEventSubmit} className="space-y-4">
+                <h3 className="text-lg mb-4" style={{ fontFamily: 'Poppins, sans-serif', fontWeight: '500' }}>
+                  Create Your Event
+                </h3>
+                
+                <div>
+                  <Label htmlFor="eventType">What kind of event?</Label>
+                  <Select onValueChange={(value) => setCreateEventForm(prev => ({...prev, eventType: value}))}>
+                    <SelectTrigger className="border-gray-300">
+                      <SelectValue placeholder="Choose event type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="dinner">Dinner</SelectItem>
+                      <SelectItem value="drinks">Drinks</SelectItem>
+                      <SelectItem value="coffee">Coffee</SelectItem>
+                      <SelectItem value="bowling">Bowling</SelectItem>
+                      <SelectItem value="sports">Sports Activity</SelectItem>
+                      <SelectItem value="movie">Movie</SelectItem>
+                      <SelectItem value="cultural">Cultural Event</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="girlsOnly" className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      id="girlsOnly"
+                      type="checkbox"
+                      checked={isGirlsOnly}
+                      onChange={(e) => setIsGirlsOnly(e.target.checked)}
+                      className="w-4 h-4 rounded border-gray-300"
+                    />
+                    <span>Girls Only Event 👭</span>
+                  </Label>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Only visible to users who selected female/woman gender
+                  </p>
+                </div>
+
+                <div>
+                  <Label htmlFor="title">Event Title (Optional)</Label>
+                  <Input
+                    id="title"
+                    value={createEventForm.title}
+                    onChange={(e) => setCreateEventForm(prev => ({...prev, title: e.target.value}))}
+                    placeholder="Custom title for your event"
+                    className="border-gray-300"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="location">Where?</Label>
+                  <Input
+                    id="location"
+                    value={createEventForm.location}
+                    onChange={(e) => setCreateEventForm(prev => ({...prev, location: e.target.value}))}
+                    placeholder="Enter location or area"
+                    className="border-gray-300"
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="date">Date</Label>
+                    <Input
+                      id="date"
+                      type="date"
+                      value={createEventForm.date}
+                      onChange={(e) => setCreateEventForm(prev => ({...prev, date: e.target.value}))}
+                      className="border-gray-300"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="time">Time</Label>
+                    <Input
+                      id="time"
+                      type="time"
+                      value={createEventForm.time}
+                      onChange={(e) => setCreateEventForm(prev => ({...prev, time: e.target.value}))}
+                      className="border-gray-300"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="description">Description (Optional)</Label>
+                  <Input
+                    id="description"
+                    value={createEventForm.description}
+                    onChange={(e) => setCreateEventForm(prev => ({...prev, description: e.target.value}))}
+                    placeholder="Tell people what to expect..."
+                    className="border-gray-300"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="groupSize">How many people are coming with you?</Label>
+                  <Select onValueChange={(value) => {
+                    const size = parseInt(value);
+                    setCreatorGroupSize(size);
+                  }}>
+                    <SelectTrigger className="border-gray-300">
+                      <SelectValue placeholder="Select your group size" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">Just me</SelectItem>
+                      <SelectItem value="2">Me + 1 friend</SelectItem>
+                      <SelectItem value="3">Group of 3</SelectItem>
+                      <SelectItem value="4">Group of 4</SelectItem>
+                      <SelectItem value="5">Group of 5</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {creatorGroupSize > 1 && (
+                    <p className="text-xs text-green-600 mt-1">
+                      You're bringing {creatorGroupSize - 1} friend{creatorGroupSize > 2 ? 's' : ''} with you
+                    </p>
+                  )}
+                  <p className="text-sm font-semibold text-blue-600 mt-2">
+                    Platform fee: ₹{calculateCreatorPayment(creatorGroupSize)} (₹100 × {creatorGroupSize} {creatorGroupSize === 1 ? 'person' : 'people'})
+                  </p>
+                </div>
+
+                <div>
+                  <Label htmlFor="additionalPeople">How many MORE people do you want to join?</Label>
+                  <Select 
+                    value={additionalPeopleRange}
+                    onValueChange={(value) => {
+                      setAdditionalPeopleRange(value);
+                      if (value !== 'custom') {
+                        setCustomPeopleCount('');
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="border-gray-300">
+                      <SelectValue placeholder="Select additional people needed" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1-3">1-3 people</SelectItem>
+                      <SelectItem value="4-6">4-6 people</SelectItem>
+                      <SelectItem value="6+">6+ people</SelectItem>
+                      <SelectItem value="custom">Custom number</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  {additionalPeopleRange === 'custom' && (
+                    <div className="mt-2">
+                      <Input
+                        type="number"
+                        min="1"
+                        max="50"
+                        value={customPeopleCount}
+                        onChange={(e) => setCustomPeopleCount(e.target.value)}
+                        placeholder="Enter number of people needed"
+                        className="border-gray-300"
+                      />
+                    </div>
+                  )}
+                  
+                  {additionalPeopleRange && (
+                    <div className="mt-2 space-y-1">
+                      <p className="text-xs text-gray-600">
+                        ✅ Your group: {creatorGroupSize} {creatorGroupSize === 1 ? 'person' : 'people'}
+                      </p>
+                      <p className="text-xs text-gray-600">
+                        ✅ Additional people: {additionalPeopleRange === 'custom' ? customPeopleCount || '?' : additionalPeopleRange}
+                      </p>
+                      <p className="text-xs font-semibold text-green-600 mt-2">
+                        💬 Chat opens when at least 1 more person joins!
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Minimum for event: {creatorGroupSize + 1} people total
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                  <p className="text-xs font-semibold text-yellow-800 mb-1">💰 Refund Policy</p>
+                  <p className="text-xs text-yellow-700">
+                    Your ₹{calculateCreatorPayment(creatorGroupSize)} will be refunded if <strong>NO ONE joins</strong> your event by the scheduled time.
+                  </p>
+                </div>
+
+                <div className="flex space-x-2 pt-4">
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      setShowCreateForm(false);
+                      setCreatorGroupSize(1);
+                      setAdditionalPeopleRange('');
+                      setCustomPeopleCount('');
+                      setIsGirlsOnly(false);
+                    }}
+                    variant="outline"
+                    className="flex-1"
+                    disabled={isLoading}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="flex-1 bg-black text-white hover:bg-gray-800"
+                    disabled={isLoading || !createEventForm.eventType || !createEventForm.location || !additionalPeopleRange}
+                  >
+                    {isLoading ? 'Creating...' : 'Create Event'}
+                  </Button>
+                </div>
+              </form>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4">
+        <div className="max-w-md mx-auto">
+          <Button
+            onClick={() => onNavigate('dashboard')}
+            variant="outline"
+            className="w-full"
+            style={{ fontFamily: 'Poppins, sans-serif' }}
+          >
+            My Dashboard
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}

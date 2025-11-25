@@ -1,0 +1,32 @@
+═══════════════════════════════════════════════════════
+  QUICK FIX CHECKLIST - Follow in Order
+═══════════════════════════════════════════════════════
+
+✅ STEP 1: Create Tables
+   → Go to: SQL Editor
+   → Run: setup-complete-database.sql
+   → Verify: "Tables ready!" message
+
+✅ STEP 2: Create User Account (MOST IMPORTANT!)
+   → Go to: Authentication → Users
+   → Click: "Add User"
+   → Email: findyourkismat@gmail.com
+   → Password: admin123
+   → ✅ CHECK "Auto Confirm User"
+   → Create User
+   → Verify: User appears with "Confirmed" status
+
+✅ STEP 3: Add Admin Account
+   → Go to: SQL Editor
+   → Run: add-admin-findyourkismat.sql
+   → Verify: Admin account created
+
+✅ STEP 4: Test Login
+   → Go to: http://localhost:3000
+   → Sign in: findyourkismat@gmail.com / admin123
+   → Should see: Admin Dashboard
+
+═══════════════════════════════════════════════════════
+  CRITICAL: Step 2 cannot be skipped!
+  User account MUST exist before login will work.
+═══════════════════════════════════════════════════════

@@ -1,0 +1,1559 @@
+// // =============================================
+// // FILE: src/utils/supabase.ts
+// // Supabase client configuration
+// // =============================================
+
+// import { createClient } from '@supabase/supabase-js'
+
+// const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'YOUR_SUPABASE_URL'
+// const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'YOUR_SUPABASE_ANON_KEY'
+
+// export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+// // =============================================
+// // Authentication helpers
+// // =============================================
+
+// export const auth = {
+//   async signInWithEmail(email: string) {
+//     const { error } = await supabase.auth.signInWithOtp({
+//       email,
+//       options: {
+//         emailRedirectTo: window.location.origin,
+//       },
+//     })
+//     return { success: !error, error: error?.message }
+//   },
+
+//   async signOut() {
+//     const { error } = await supabase.auth.signOut()
+//     return { success: !error, error: error?.message }
+//   },
+
+//   async getCurrentUser() {
+//     const { data: { user }, error } = await supabase.auth.getUser()
+//     return { user, error: error?.message }
+//   },
+
+//   onAuthStateChange(callback: (user: any) => void) {
+//     return supabase.auth.onAuthStateChange((_event, session) => {
+//       callback(session?.user || null)
+//     })
+//   },
+
+//   async isAdmin() {
+//     const { user } = await this.getCurrentUser()
+//     if (!user) return false
+
+//     const { data } = await supabase
+//       .from('admin_users')
+//       .select('id')
+//       .eq('auth_user_id', user.id)
+//       .single()
+
+//     return !!data
+//   }
+// }
+
+// // =============================================
+// // Database helpers
+// // =============================================
+
+// export const db = {
+//   async getProfile(userId: string) {
+//     const { data, error } = await supabase
+//       .from('profiles')
+//       .select('*')
+//       .eq('id', userId)
+//       .single()
+    
+//     return { profile: data, error: error?.message }
+//   },
+
+//   async createProfile(profile: any) {
+//     const { user } = await auth.getCurrentUser()
+    
+//     if (!user) {
+//       return { profile: null, error: 'No authenticated user' }
+//     }
+
+//     // Check if profile exists by auth_user_id
+//     const { data: existingByAuth } = await supabase
+//       .from('profiles')
+//       .select('*')
+//       .eq('auth_user_id', user.id)
+//       .maybeSingle()
+
+//     if (existingByAuth) {
+//       // Update existing profile
+//       const { data, error } = await supabase
+//         .from('profiles')
+//         .update({
+//           name: profile.name,
+//           age: profile.age,
+//           gender: profile.gender,
+//           pronouns: profile.pronouns,
+//           work_study: profile.workStudy,
+//           apartment: profile.location?.apartment,
+//           locality: profile.location?.locality,
+//           suburb: profile.location?.suburb,
+//           city: profile.location?.city,
+//           personality_answers: profile.personalityAnswers,
+//           joined_events: profile.joinedEvents || []
+//         })
+//         .eq('id', existingByAuth.id)
+//         .select()
+//         .single()
+      
+//       return { profile: data, error: error?.message }
+//     }
+
+//     // Check if email already exists
+//     const { data: existingByEmail } = await supabase
+//       .from('profiles')
+//       .select('*')
+//       .eq('email', user.email)
+//       .maybeSingle()
+
+//     if (existingByEmail) {
+//       const { data, error } = await supabase
+//         .from('profiles')
+//         .update({
+//           auth_user_id: user.id,
+//           name: profile.name,
+//           age: profile.age,
+//           gender: profile.gender,
+//           pronouns: profile.pronouns,
+//           work_study: profile.workStudy,
+//           apartment: profile.location?.apartment,
+//           locality: profile.location?.locality,
+//           suburb: profile.location?.suburb,
+//           city: profile.location?.city,
+//           personality_answers: profile.personalityAnswers,
+//           joined_events: profile.joinedEvents || []
+//         })
+//         .eq('id', existingByEmail.id)
+//         .select()
+//         .single()
+      
+//       return { profile: data, error: error?.message }
+//     }
+
+//     // Create new profile
+//     const { data, error } = await supabase
+//       .from('profiles')
+//       .insert({
+//         name: profile.name,
+//         age: profile.age,
+//         gender: profile.gender,
+//         pronouns: profile.pronouns,
+//         work_study: profile.workStudy,
+//         apartment: profile.location?.apartment,
+//         locality: profile.location?.locality,
+//         suburb: profile.location?.suburb,
+//         city: profile.location?.city,
+//         personality_answers: profile.personalityAnswers || {},
+//         joined_events: profile.joinedEvents || [],
+//         auth_user_id: user.id,
+//         email: user.email
+//       })
+//       .select()
+//       .single()
+    
+//     return { profile: data, error: error?.message }
+//   },
+
+//   async updateProfile(userId: string, updates: any) {
+//     const dbUpdates: any = {}
+    
+//     if (updates.name) dbUpdates.name = updates.name
+//     if (updates.age) dbUpdates.age = updates.age
+//     if (updates.gender) dbUpdates.gender = updates.gender
+//     if (updates.pronouns) dbUpdates.pronouns = updates.pronouns
+//     if (updates.workStudy) dbUpdates.work_study = updates.workStudy
+//     if (updates.personalityAnswers) dbUpdates.personality_answers = updates.personalityAnswers
+//     if (updates.joinedEvents) dbUpdates.joined_events = updates.joinedEvents
+//     if (updates.location) {
+//       dbUpdates.apartment = updates.location.apartment
+//       dbUpdates.locality = updates.location.locality
+//       dbUpdates.suburb = updates.location.suburb
+//       dbUpdates.city = updates.location.city
+//     }
+
+//     const { data, error } = await supabase
+//       .from('profiles')
+//       .update(dbUpdates)
+//       .eq('id', userId)
+//       .select()
+//       .single()
+    
+//     return { profile: data, error: error?.message }
+//   },
+
+//   async getEvents(includePending = false) {
+//     let query = supabase
+//       .from('events')
+//       .select('*')
+//       .order('created_at', { ascending: false })
+
+//     if (!includePending) {
+//       query = query.eq('status', 'approved')
+//     }
+
+//     const { data, error } = await query
+//     return { events: data || [], error: error?.message }
+//   },
+
+//   async getEvent(eventId: string) {
+//     const { data, error } = await supabase
+//       .from('events')
+//       .select('*')
+//       .eq('id', eventId)
+//       .single()
+    
+//     return { event: data, error: error?.message }
+//   },
+
+//   async getEventById(eventId: string) {
+//     try {
+//       const { data, error } = await supabase
+//         .from('events')
+//         .select('*')
+//         .eq('id', eventId)
+//         .single()
+      
+//       return { event: data, error: error?.message }
+//     } catch (error) {
+//       return { event: null, error: 'Failed to fetch event' }
+//     }
+//   },
+
+//   async createEvent(eventData: any) {
+//     try {
+//       const { user } = await auth.getCurrentUser()
+      
+//       // Insert event without created_by if user is null
+//       const insertData: any = {
+//         title: eventData.title,
+//         date: eventData.date,
+//         time: eventData.time,
+//         location: eventData.location,
+//         distance: eventData.distance || 'Custom location',
+//         spots_left: eventData.spotsLeft || eventData.totalSpots,
+//         total_spots: eventData.totalSpots,
+//         participants: eventData.participants || [],
+//         price: eventData.price,
+//         category: eventData.category,
+//         description: eventData.description,
+//         status: 'approved' // Changed from 'pending' to auto-approve
+//       }
+      
+//       // Only add created_by if user exists
+//       if (user?.id) {
+//         insertData.created_by = user.id
+//       }
+      
+//       const { data, error } = await supabase
+//         .from('events')
+//         .insert(insertData)
+//         .select()
+//         .single()
+      
+//       if (error) {
+//         console.error('Supabase createEvent error:', error)
+//         return { success: false, event: null, error: error.message }
+//       }
+      
+//       return { success: true, event: data, error: null }
+//     } catch (err: any) {
+//       console.error('Unexpected error in createEvent:', err)
+//       return { success: false, event: null, error: err.message }
+//     }
+//   },
+
+//   async approveEvent(eventId: string) {
+//     const { data, error } = await supabase
+//       .from('events')
+//       .update({ status: 'approved' })
+//       .eq('id', eventId)
+//       .select()
+//       .single()
+    
+//     return { event: data, error: error?.message }
+//   },
+
+//   async rejectEvent(eventId: string) {
+//     const { data, error } = await supabase
+//       .from('events')
+//       .update({ status: 'rejected' })
+//       .eq('id', eventId)
+//       .select()
+//       .single()
+    
+//     return { event: data, error: error?.message }
+//   },
+
+//   async joinEvent(eventId: string, userId: string, userName: string) {
+//     const { event } = await this.getEvent(eventId)
+//     if (!event || event.spots_left <= 0) {
+//       return { success: false, error: 'Event is full' }
+//     }
+
+//     const { error: participantError } = await supabase
+//       .from('event_participants')
+//       .insert({
+//         event_id: eventId,
+//         user_id: userId,
+//         user_name: userName
+//       })
+
+//     if (participantError) {
+//       return { success: false, error: participantError.message }
+//     }
+
+//     const { error: updateError } = await supabase
+//       .from('events')
+//       .update({ 
+//         spots_left: event.spots_left - 1,
+//         participants: [...(event.participants || []), userName]
+//       })
+//       .eq('id', eventId)
+
+//     return { success: !updateError, error: updateError?.message }
+//   },
+
+//   async getUserEvents(userId: string) {
+//     const { data, error } = await supabase
+//       .from('event_participants')
+//       .select(`
+//         *,
+//         events (*)
+//       `)
+//       .eq('user_id', userId)
+
+//     return { events: data?.map(p => p.events) || [], error: error?.message }
+//   },
+
+//   async getAllProfiles() {
+//     const { data, error } = await supabase
+//       .from('profiles')
+//       .select('*')
+//       .order('created_at', { ascending: false })
+
+//     return { profiles: data || [], error: error?.message }
+//   },
+
+//   async getPendingEvents() {
+//     const { data, error } = await supabase
+//       .from('events')
+//       .select('*')
+//       .eq('status', 'pending')
+//       .order('created_at', { ascending: false })
+
+//     return { events: data || [], error: error?.message }
+//   },
+
+//   // =============================================
+//   // Chat Functions
+//   // =============================================
+
+//   async getChatMessages(eventId: string) {
+//     try {
+//       const sevenDaysAgo = new Date()
+//       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+      
+//       const { data, error } = await supabase
+//         .from('chat_messages')
+//         .select('*')
+//         .eq('event_id', eventId)
+//         .gte('created_at', sevenDaysAgo.toISOString())
+//         .order('created_at', { ascending: true })
+//         .limit(100)
+      
+//       return { messages: data || [], error: error?.message }
+//     } catch (error) {
+//       return { messages: [], error: 'Failed to fetch messages' }
+//     }
+//   },
+
+//   async sendChatMessage(eventId: string, userId: string, userName: string, message: string) {
+//     try {
+//       const { error } = await supabase
+//         .from('chat_messages')
+//         .insert({
+//           event_id: eventId,
+//           user_id: userId,
+//           user_name: userName,
+//           message: message
+//         })
+      
+//       return { success: !error, error: error?.message }
+//     } catch (error) {
+//       return { success: false, error: 'Failed to send message' }
+//     }
+//   }
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// // =============================================
+// // FILE: src/utils/supabase.ts
+// // Supabase client configuration
+// // =============================================
+
+// import { createClient } from '@supabase/supabase-js'
+
+// const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'YOUR_SUPABASE_URL'
+// const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'YOUR_SUPABASE_ANON_KEY'
+
+// export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+// // =============================================
+// // Authentication helpers
+// // =============================================
+
+// export const auth = {
+//   async signUp(email: string, password: string) {
+//     const { data, error } = await supabase.auth.signUp({
+//       email,
+//       password,
+//       options: {
+//         emailRedirectTo: window.location.origin,
+//       },
+//     })
+//     return { 
+//       success: !error, 
+//       error: error?.message,
+//       user: data.user,
+//       needsEmailConfirmation: data.user && !data.user.confirmed_at
+//     }
+//   },
+
+//   async signIn(email: string, password: string) {
+//     const { data, error } = await supabase.auth.signInWithPassword({
+//       email,
+//       password,
+//     })
+//     return { 
+//       success: !error, 
+//       error: error?.message,
+//       user: data.user
+//     }
+//   },
+
+//   async signInWithEmail(email: string) {
+//     const { error } = await supabase.auth.signInWithOtp({
+//       email,
+//       options: {
+//         emailRedirectTo: window.location.origin,
+//       },
+//     })
+//     return { success: !error, error: error?.message }
+//   },
+
+//   async resetPassword(email: string) {
+//     const { error } = await supabase.auth.resetPasswordForEmail(email, {
+//       redirectTo: `${window.location.origin}/reset-password`,
+//     })
+//     return { success: !error, error: error?.message }
+//   },
+
+//   async signOut() {
+//     const { error } = await supabase.auth.signOut()
+//     return { success: !error, error: error?.message }
+//   },
+
+//   async getCurrentUser() {
+//     const { data: { user }, error } = await supabase.auth.getUser()
+//     return { user, error: error?.message }
+//   },
+
+//   onAuthStateChange(callback: (user: any) => void) {
+//     return supabase.auth.onAuthStateChange((_event, session) => {
+//       callback(session?.user || null)
+//     })
+//   },
+
+//   async isAdmin() {
+//     const { user } = await this.getCurrentUser()
+//     if (!user) return false
+
+//     const { data } = await supabase
+//       .from('admin_users')
+//       .select('id')
+//       .eq('auth_user_id', user.id)
+//       .single()
+
+//     return !!data
+//   }
+// }
+
+// // =============================================
+// // Database helpers
+// // =============================================
+
+// export const db = {
+//   async getProfile(userId: string) {
+//     const { data, error } = await supabase
+//       .from('profiles')
+//       .select('*')
+//       .eq('id', userId)
+//       .single()
+    
+//     return { profile: data, error: error?.message }
+//   },
+
+//   async createProfile(profile: any) {
+//     const { user } = await auth.getCurrentUser()
+    
+//     if (!user) {
+//       return { profile: null, error: 'No authenticated user' }
+//     }
+
+//     // Check if profile exists by auth_user_id
+//     const { data: existingByAuth } = await supabase
+//       .from('profiles')
+//       .select('*')
+//       .eq('auth_user_id', user.id)
+//       .maybeSingle()
+
+//     if (existingByAuth) {
+//       // Update existing profile
+//       const { data, error } = await supabase
+//         .from('profiles')
+//         .update({
+//           name: profile.name,
+//           age: profile.age,
+//           gender: profile.gender,
+//           pronouns: profile.pronouns,
+//           work_study: profile.workStudy,
+//           apartment: profile.location?.apartment,
+//           locality: profile.location?.locality,
+//           suburb: profile.location?.suburb,
+//           city: profile.location?.city,
+//           personality_answers: profile.personalityAnswers,
+//           joined_events: profile.joinedEvents || []
+//         })
+//         .eq('id', existingByAuth.id)
+//         .select()
+//         .single()
+      
+//       return { profile: data, error: error?.message }
+//     }
+
+//     // Check if email already exists
+//     const { data: existingByEmail } = await supabase
+//       .from('profiles')
+//       .select('*')
+//       .eq('email', user.email)
+//       .maybeSingle()
+
+//     if (existingByEmail) {
+//       const { data, error } = await supabase
+//         .from('profiles')
+//         .update({
+//           auth_user_id: user.id,
+//           name: profile.name,
+//           age: profile.age,
+//           gender: profile.gender,
+//           pronouns: profile.pronouns,
+//           work_study: profile.workStudy,
+//           apartment: profile.location?.apartment,
+//           locality: profile.location?.locality,
+//           suburb: profile.location?.suburb,
+//           city: profile.location?.city,
+//           personality_answers: profile.personalityAnswers,
+//           joined_events: profile.joinedEvents || []
+//         })
+//         .eq('id', existingByEmail.id)
+//         .select()
+//         .single()
+      
+//       return { profile: data, error: error?.message }
+//     }
+
+//     // Create new profile
+//     const { data, error } = await supabase
+//       .from('profiles')
+//       .insert({
+//         name: profile.name,
+//         age: profile.age,
+//         gender: profile.gender,
+//         pronouns: profile.pronouns,
+//         work_study: profile.workStudy,
+//         apartment: profile.location?.apartment,
+//         locality: profile.location?.locality,
+//         suburb: profile.location?.suburb,
+//         city: profile.location?.city,
+//         personality_answers: profile.personalityAnswers || {},
+//         joined_events: profile.joinedEvents || [],
+//         auth_user_id: user.id,
+//         email: user.email
+//       })
+//       .select()
+//       .single()
+    
+//     return { profile: data, error: error?.message }
+//   },
+
+//   async updateProfile(userId: string, updates: any) {
+//     const dbUpdates: any = {}
+    
+//     if (updates.name) dbUpdates.name = updates.name
+//     if (updates.age) dbUpdates.age = updates.age
+//     if (updates.gender) dbUpdates.gender = updates.gender
+//     if (updates.pronouns) dbUpdates.pronouns = updates.pronouns
+//     if (updates.workStudy) dbUpdates.work_study = updates.workStudy
+//     if (updates.personalityAnswers) dbUpdates.personality_answers = updates.personalityAnswers
+//     if (updates.joinedEvents) dbUpdates.joined_events = updates.joinedEvents
+//     if (updates.location) {
+//       dbUpdates.apartment = updates.location.apartment
+//       dbUpdates.locality = updates.location.locality
+//       dbUpdates.suburb = updates.location.suburb
+//       dbUpdates.city = updates.location.city
+//     }
+
+//     const { data, error } = await supabase
+//       .from('profiles')
+//       .update(dbUpdates)
+//       .eq('id', userId)
+//       .select()
+//       .single()
+    
+//     return { profile: data, error: error?.message }
+//   },
+
+//   async getEvents(includePending = false, userGender?: string) {
+//     console.log('🔍 getEvents called with:', { includePending, userGender }); // Debug log
+    
+//     let query = supabase
+//       .from('events')
+//       .select('*')
+//       .order('created_at', { ascending: false })
+    
+//     if (!includePending) {
+//       query = query.eq('status', 'approved')
+//     }
+    
+//     const { data, error } = await query
+    
+//     if (error) {
+//       console.error('❌ Error fetching events:', error);
+//       return { events: [], error: error.message }
+//     }
+    
+//     console.log('📦 Raw events from database:', data?.length);
+    
+//     // Filter out girls-only events for male users
+//     let filteredEvents = data || []
+    
+//     if (userGender) {
+//       const genderLower = userGender.toLowerCase().trim()
+//       console.log('👤 User gender (normalized):', genderLower);
+      
+//       // Check if user is male - FIXED: Check male FIRST before contains check
+//       const isMale = genderLower === 'male' || 
+//                      genderLower === 'man' ||
+//                      genderLower === 'm' ||
+//                      (genderLower.includes('male') && !genderLower.includes('female'))
+      
+//       console.log('🚹 Is male user?', isMale);
+      
+//       if (isMale) {
+//         // Filter out girls-only events
+//         const beforeFilter = filteredEvents.length;
+//         filteredEvents = filteredEvents.filter(event => {
+//           const isGirlsOnly = event.girls_only === true;
+//           console.log(`Event "${event.title}": girls_only=${isGirlsOnly}`);
+//           return !isGirlsOnly;
+//         });
+//         const afterFilter = filteredEvents.length;
+//         console.log(`✂️ Filtered ${beforeFilter - afterFilter} girls-only events`);
+//       }
+//     } else {
+//       console.warn('⚠️ No userGender provided to getEvents - showing all events');
+//     }
+    
+//     console.log('✅ Returning filtered events:', filteredEvents.length);
+//     return { events: filteredEvents, error: null }
+//   },
+
+//   async canUserSeeEvent(eventId: string, userGender?: string) {
+//     const { data: event, error } = await supabase
+//       .from('events')
+//       .select('girls_only')
+//       .eq('id', eventId)
+//       .single()
+    
+//     if (error || !event) {
+//       return false
+//     }
+    
+//     // If it's not a girls-only event, everyone can see it
+//     if (!event.girls_only) {
+//       return true
+//     }
+    
+//     // If it's girls-only, only females can see it
+//     if (!userGender) {
+//       return false
+//     }
+    
+//     const genderLower = userGender.toLowerCase().trim()
+//     const isFemale = genderLower === 'female' || 
+//                      genderLower === 'woman' ||
+//                      genderLower === 'f' ||
+//                      (genderLower.includes('female') || genderLower.includes('woman'))
+    
+//     return isFemale
+//   },
+
+//   async getEvent(eventId: string) {
+//     const { data, error } = await supabase
+//       .from('events')
+//       .select('*')
+//       .eq('id', eventId)
+//       .single()
+    
+//     return { event: data, error: error?.message }
+//   },
+
+//   async getEventById(eventId: string) {
+//     try {
+//       const { data, error } = await supabase
+//         .from('events')
+//         .select('*')
+//         .eq('id', eventId)
+//         .single()
+      
+//       return { event: data, error: error?.message }
+//     } catch (error) {
+//       return { event: null, error: 'Failed to fetch event' }
+//     }
+//   },
+
+//   async createEvent(eventData: any) {
+//     try {
+//       const { user } = await auth.getCurrentUser()
+      
+//       const insertData: any = {
+//         title: eventData.title,
+//         date: eventData.date,
+//         time: eventData.time,
+//         location: eventData.location,
+//         distance: eventData.distance || 'Custom location',
+//         spots_left: eventData.spotsLeft || eventData.totalSpots,
+//         total_spots: eventData.totalSpots,
+//         participants: eventData.participants || [],
+//         price: eventData.price,
+//         category: eventData.category,
+//         description: eventData.description,
+//         status: 'pending',
+//         girls_only: eventData.girlsOnly || false,
+//         creator_group_size: eventData.creatorGroupSize || 1,
+//         creator_payment_amount: eventData.creatorPaymentAmount || 100,
+//         min_participants: eventData.minParticipants || 2,
+//         max_participants: eventData.maxParticipants,
+//         creator_paid: eventData.creatorPaid || false,
+//         event_filled: eventData.eventFilled || false
+//       }
+      
+//       // Only add created_by if user exists
+//       if (user?.id) {
+//         insertData.created_by = user.id
+//       }
+      
+//       const { data, error } = await supabase
+//         .from('events')
+//         .insert(insertData)
+//         .select()
+//         .single()
+      
+//       if (error) {
+//         console.error('Supabase createEvent error:', error)
+//         return { success: false, event: null, error: error.message }
+//       }
+      
+//       return { success: true, event: data, error: null }
+//     } catch (err: any) {
+//       console.error('Unexpected error in createEvent:', err)
+//       return { success: false, event: null, error: err.message }
+//     }
+//   },
+
+//   async markEventAsPaid(eventId: string) {
+//     try {
+//       const { error } = await supabase
+//         .from('events')
+//         .update({ creator_paid: true })
+//         .eq('id', eventId)
+      
+//       return { success: !error, error: error?.message }
+//     } catch (error) {
+//       return { success: false, error: 'Failed to mark event as paid' }
+//     }
+//   },
+
+//   async approveEvent(eventId: string) {
+//     const { data, error } = await supabase
+//       .from('events')
+//       .update({ status: 'approved' })
+//       .eq('id', eventId)
+//       .select()
+//       .single()
+    
+//     return { event: data, error: error?.message }
+//   },
+
+//   async rejectEvent(eventId: string) {
+//     const { data, error } = await supabase
+//       .from('events')
+//       .update({ status: 'rejected' })
+//       .eq('id', eventId)
+//       .select()
+//       .single()
+    
+//     return { event: data, error: error?.message }
+//   },
+
+//   async joinEvent(eventId: string, userId: string, userName: string) {
+//     const { event } = await this.getEvent(eventId)
+//     if (!event || event.spots_left <= 0) {
+//       return { success: false, error: 'Event is full' }
+//     }
+
+//     const { error: participantError } = await supabase
+//       .from('event_participants')
+//       .insert({
+//         event_id: eventId,
+//         user_id: userId,
+//         user_name: userName
+//       })
+
+//     if (participantError) {
+//       return { success: false, error: participantError.message }
+//     }
+
+//     const newParticipants = [...(event.participants || []), userName]
+//     const newSpotsLeft = event.spots_left - 1
+    
+//     // Check if minimum participants reached (chat opens)
+//     const chatOpens = newParticipants.length >= (event.min_participants || 2)
+
+//     const { error: updateError } = await supabase
+//       .from('events')
+//       .update({ 
+//         spots_left: newSpotsLeft,
+//         participants: newParticipants,
+//         event_filled: chatOpens // Event is "filled" when min participants reached
+//       })
+//       .eq('id', eventId)
+
+//     return { 
+//       success: !updateError, 
+//       error: updateError?.message,
+//       chatOpens: chatOpens 
+//     }
+//   },
+
+//   async getUserEvents(userId: string) {
+//     const { data, error } = await supabase
+//       .from('event_participants')
+//       .select(`
+//         *,
+//         events (*)
+//       `)
+//       .eq('user_id', userId)
+
+//     return { events: data?.map(p => p.events) || [], error: error?.message }
+//   },
+
+//   async getAllProfiles() {
+//     const { data, error } = await supabase
+//       .from('profiles')
+//       .select('*')
+//       .order('created_at', { ascending: false })
+
+//     return { profiles: data || [], error: error?.message }
+//   },
+
+//   async getPendingEvents() {
+//     const { data, error } = await supabase
+//       .from('events')
+//       .select('*')
+//       .eq('status', 'pending')
+//       .order('created_at', { ascending: false })
+
+//     return { events: data || [], error: error?.message }
+//   },
+
+//   async getAllEvents() {
+//     const { data, error } = await supabase
+//       .from('events')
+//       .select('*')
+//       .order('created_at', { ascending: false })
+
+//     return { events: data || [], error: error?.message }
+//   },
+
+//   // =============================================
+//   // Chat Functions
+//   // =============================================
+
+//   async getChatMessages(eventId: string) {
+//     try {
+//       const sevenDaysAgo = new Date()
+//       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+      
+//       const { data, error } = await supabase
+//         .from('chat_messages')
+//         .select('*')
+//         .eq('event_id', eventId)
+//         .gte('created_at', sevenDaysAgo.toISOString())
+//         .order('created_at', { ascending: true })
+//         .limit(100)
+      
+//       return { messages: data || [], error: error?.message }
+//     } catch (error) {
+//       return { messages: [], error: 'Failed to fetch messages' }
+//     }
+//   },
+
+//   async sendChatMessage(eventId: string, userId: string, userName: string, message: string) {
+//     try {
+//       const { error } = await supabase
+//         .from('chat_messages')
+//         .insert({
+//           event_id: eventId,
+//           user_id: userId,
+//           user_name: userName,
+//           message: message
+//         })
+      
+//       return { success: !error, error: error?.message }
+//     } catch (error) {
+//       return { success: false, error: 'Failed to send message' }
+//     }
+//   }
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// =============================================
+// FILE: src/utils/supabase.ts
+// Supabase client configuration
+// =============================================
+
+import { createClient } from '@supabase/supabase-js'
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'YOUR_SUPABASE_URL'
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'YOUR_SUPABASE_ANON_KEY'
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+// =============================================
+// Authentication helpers
+// =============================================
+
+export const auth = {
+  async signUp(email: string, password: string) {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: window.location.origin,
+      },
+    })
+    
+    console.log('🔐 SignUp Response:', {
+      user: data.user?.email,
+      session: data.session ? 'EXISTS' : 'NULL',
+      confirmed_at: data.user?.confirmed_at,
+      email_confirmed_at: data.user?.email_confirmed_at
+    });
+    
+    // If session exists, user is auto-confirmed (email confirmation is disabled)
+    const isAutoConfirmed = data.session !== null;
+    
+    // If user exists but no session, email confirmation is required
+    const needsEmailConfirmation = data.user !== null && data.session === null;
+    
+    return { 
+      success: !error, 
+      error: error?.message,
+      user: data.user,
+      session: data.session,
+      needsEmailConfirmation: needsEmailConfirmation,
+      autoConfirmed: isAutoConfirmed
+    }
+  },
+
+  async signIn(email: string, password: string) {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+    return { 
+      success: !error, 
+      error: error?.message,
+      user: data.user
+    }
+  },
+
+  async signInWithEmail(email: string) {
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: window.location.origin,
+      },
+    })
+    return { success: !error, error: error?.message }
+  },
+
+  async resetPassword(email: string) {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/#reset-password`,
+    })
+    return { success: !error, error: error?.message }
+  },
+
+  async signOut() {
+    const { error } = await supabase.auth.signOut()
+    return { success: !error, error: error?.message }
+  },
+
+  async getCurrentUser() {
+    const { data: { user }, error } = await supabase.auth.getUser()
+    return { user, error: error?.message }
+  },
+
+  onAuthStateChange(callback: (user: any) => void) {
+    return supabase.auth.onAuthStateChange((_event, session) => {
+      callback(session?.user || null)
+    })
+  },
+
+  async isAdmin() {
+    const { user } = await this.getCurrentUser()
+    if (!user) return false
+
+    const { data } = await supabase
+      .from('admin_users')
+      .select('id')
+      .eq('auth_user_id', user.id)
+      .single()
+
+    return !!data
+  }
+}
+
+// =============================================
+// Database helpers
+// =============================================
+
+export const db = {
+  async getProfile(userId: string) {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single()
+    
+    return { profile: data, error: error?.message }
+  },
+
+  async createProfile(profile: any) {
+    const { user } = await auth.getCurrentUser()
+    
+    if (!user) {
+      return { profile: null, error: 'No authenticated user' }
+    }
+
+    // Check if profile exists by auth_user_id
+    const { data: existingByAuth } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('auth_user_id', user.id)
+      .maybeSingle()
+
+    if (existingByAuth) {
+      // Update existing profile
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({
+          name: profile.name,
+          age: profile.age,
+          gender: profile.gender,
+          pronouns: profile.pronouns,
+          work_study: profile.workStudy,
+          apartment: profile.location?.apartment,
+          locality: profile.location?.locality,
+          suburb: profile.location?.suburb,
+          city: profile.location?.city,
+          personality_answers: profile.personalityAnswers,
+          joined_events: profile.joinedEvents || []
+        })
+        .eq('id', existingByAuth.id)
+        .select()
+        .single()
+      
+      return { profile: data, error: error?.message }
+    }
+
+    // Check if email already exists
+    const { data: existingByEmail } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('email', user.email)
+      .maybeSingle()
+
+    if (existingByEmail) {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({
+          auth_user_id: user.id,
+          name: profile.name,
+          age: profile.age,
+          gender: profile.gender,
+          pronouns: profile.pronouns,
+          work_study: profile.workStudy,
+          apartment: profile.location?.apartment,
+          locality: profile.location?.locality,
+          suburb: profile.location?.suburb,
+          city: profile.location?.city,
+          personality_answers: profile.personalityAnswers,
+          joined_events: profile.joinedEvents || []
+        })
+        .eq('id', existingByEmail.id)
+        .select()
+        .single()
+      
+      return { profile: data, error: error?.message }
+    }
+
+    // Create new profile
+    const { data, error } = await supabase
+      .from('profiles')
+      .insert({
+        name: profile.name,
+        age: profile.age,
+        gender: profile.gender,
+        pronouns: profile.pronouns,
+        work_study: profile.workStudy,
+        apartment: profile.location?.apartment,
+        locality: profile.location?.locality,
+        suburb: profile.location?.suburb,
+        city: profile.location?.city,
+        personality_answers: profile.personalityAnswers || {},
+        joined_events: profile.joinedEvents || [],
+        auth_user_id: user.id,
+        email: user.email
+      })
+      .select()
+      .single()
+    
+    return { profile: data, error: error?.message }
+  },
+
+  async updateProfile(userId: string, updates: any) {
+    const dbUpdates: any = {}
+    
+    if (updates.name) dbUpdates.name = updates.name
+    if (updates.age) dbUpdates.age = updates.age
+    if (updates.gender) dbUpdates.gender = updates.gender
+    if (updates.pronouns) dbUpdates.pronouns = updates.pronouns
+    if (updates.workStudy) dbUpdates.work_study = updates.workStudy
+    if (updates.personalityAnswers) dbUpdates.personality_answers = updates.personalityAnswers
+    if (updates.joinedEvents) dbUpdates.joined_events = updates.joinedEvents
+    if (updates.location) {
+      dbUpdates.apartment = updates.location.apartment
+      dbUpdates.locality = updates.location.locality
+      dbUpdates.suburb = updates.location.suburb
+      dbUpdates.city = updates.location.city
+    }
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .update(dbUpdates)
+      .eq('id', userId)
+      .select()
+      .single()
+    
+    return { profile: data, error: error?.message }
+  },
+
+  async getEvents(includePending = false, userGender?: string) {
+    console.log('🔍 getEvents called with:', { includePending, userGender }); // Debug log
+    
+    let query = supabase
+      .from('events')
+      .select('*')
+      .order('created_at', { ascending: false })
+    
+    if (!includePending) {
+      query = query.eq('status', 'approved')
+    }
+    
+    const { data, error } = await query
+    
+    if (error) {
+      console.error('❌ Error fetching events:', error);
+      return { events: [], error: error.message }
+    }
+    
+    console.log('📦 Raw events from database:', data?.length);
+    
+    // Filter out girls-only events for male users
+    let filteredEvents = data || []
+    
+    if (userGender) {
+      const genderLower = userGender.toLowerCase().trim()
+      console.log('👤 User gender (normalized):', genderLower);
+      
+      // Check if user is male - FIXED: Check male FIRST before contains check
+      const isMale = genderLower === 'male' || 
+                     genderLower === 'man' ||
+                     genderLower === 'm' ||
+                     (genderLower.includes('male') && !genderLower.includes('female'))
+      
+      console.log('🚹 Is male user?', isMale);
+      
+      if (isMale) {
+        // Filter out girls-only events
+        const beforeFilter = filteredEvents.length;
+        filteredEvents = filteredEvents.filter(event => {
+          const isGirlsOnly = event.girls_only === true;
+          console.log(`Event "${event.title}": girls_only=${isGirlsOnly}`);
+          return !isGirlsOnly;
+        });
+        const afterFilter = filteredEvents.length;
+        console.log(`✂️ Filtered ${beforeFilter - afterFilter} girls-only events`);
+      }
+    } else {
+      console.warn('⚠️ No userGender provided to getEvents - showing all events');
+    }
+    
+    console.log('✅ Returning filtered events:', filteredEvents.length);
+    return { events: filteredEvents, error: null }
+  },
+
+  async canUserSeeEvent(eventId: string, userGender?: string) {
+    const { data: event, error } = await supabase
+      .from('events')
+      .select('girls_only')
+      .eq('id', eventId)
+      .single()
+    
+    if (error || !event) {
+      return false
+    }
+    
+    // If it's not a girls-only event, everyone can see it
+    if (!event.girls_only) {
+      return true
+    }
+    
+    // If it's girls-only, only females can see it
+    if (!userGender) {
+      return false
+    }
+    
+    const genderLower = userGender.toLowerCase().trim()
+    const isFemale = genderLower === 'female' || 
+                     genderLower === 'woman' ||
+                     genderLower === 'f' ||
+                     (genderLower.includes('female') || genderLower.includes('woman'))
+    
+    return isFemale
+  },
+
+  async getEvent(eventId: string) {
+    const { data, error } = await supabase
+      .from('events')
+      .select('*')
+      .eq('id', eventId)
+      .single()
+    
+    return { event: data, error: error?.message }
+  },
+
+  async getEventById(eventId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .eq('id', eventId)
+        .single()
+      
+      return { event: data, error: error?.message }
+    } catch (error) {
+      return { event: null, error: 'Failed to fetch event' }
+    }
+  },
+
+  async createEvent(eventData: any) {
+    try {
+      const { user } = await auth.getCurrentUser()
+      
+      const insertData: any = {
+        title: eventData.title,
+        date: eventData.date,
+        time: eventData.time,
+        location: eventData.location,
+        distance: eventData.distance || 'Custom location',
+        spots_left: eventData.spotsLeft || eventData.totalSpots,
+        total_spots: eventData.totalSpots,
+        participants: eventData.participants || [],
+        price: eventData.price,
+        category: eventData.category,
+        description: eventData.description,
+        status: 'pending',
+        girls_only: eventData.girlsOnly || false,
+        creator_group_size: eventData.creatorGroupSize || 1,
+        creator_payment_amount: eventData.creatorPaymentAmount || 100,
+        min_participants: eventData.minParticipants || 2,
+        max_participants: eventData.maxParticipants,
+        creator_paid: eventData.creatorPaid || false,
+        event_filled: eventData.eventFilled || false
+      }
+      
+      // Only add created_by if user exists
+      if (user?.id) {
+        insertData.created_by = user.id
+      }
+      
+      const { data, error } = await supabase
+        .from('events')
+        .insert(insertData)
+        .select()
+        .single()
+      
+      if (error) {
+        console.error('Supabase createEvent error:', error)
+        return { success: false, event: null, error: error.message }
+      }
+      
+      return { success: true, event: data, error: null }
+    } catch (err: any) {
+      console.error('Unexpected error in createEvent:', err)
+      return { success: false, event: null, error: err.message }
+    }
+  },
+
+  async markEventAsPaid(eventId: string) {
+    try {
+      const { error } = await supabase
+        .from('events')
+        .update({ creator_paid: true })
+        .eq('id', eventId)
+      
+      return { success: !error, error: error?.message }
+    } catch (error) {
+      return { success: false, error: 'Failed to mark event as paid' }
+    }
+  },
+
+  async approveEvent(eventId: string) {
+    const { data, error } = await supabase
+      .from('events')
+      .update({ status: 'approved' })
+      .eq('id', eventId)
+      .select()
+      .single()
+    
+    return { event: data, error: error?.message }
+  },
+
+  async rejectEvent(eventId: string) {
+    const { data, error } = await supabase
+      .from('events')
+      .update({ status: 'rejected' })
+      .eq('id', eventId)
+      .select()
+      .single()
+    
+    return { event: data, error: error?.message }
+  },
+
+  async joinEvent(eventId: string, userId: string, userName: string) {
+    const { event } = await this.getEvent(eventId)
+    if (!event || event.spots_left <= 0) {
+      return { success: false, error: 'Event is full' }
+    }
+
+    const { error: participantError } = await supabase
+      .from('event_participants')
+      .insert({
+        event_id: eventId,
+        user_id: userId,
+        user_name: userName
+      })
+
+    if (participantError) {
+      return { success: false, error: participantError.message }
+    }
+
+    const newParticipants = [...(event.participants || []), userName]
+    const newSpotsLeft = event.spots_left - 1
+    
+    // Check if minimum participants reached (chat opens)
+    const chatOpens = newParticipants.length >= (event.min_participants || 2)
+
+    const { error: updateError } = await supabase
+      .from('events')
+      .update({ 
+        spots_left: newSpotsLeft,
+        participants: newParticipants,
+        event_filled: chatOpens // Event is "filled" when min participants reached
+      })
+      .eq('id', eventId)
+
+    return { 
+      success: !updateError, 
+      error: updateError?.message,
+      chatOpens: chatOpens 
+    }
+  },
+
+  async getUserEvents(userId: string) {
+    const { data, error } = await supabase
+      .from('event_participants')
+      .select(`
+        *,
+        events (*)
+      `)
+      .eq('user_id', userId)
+
+    return { events: data?.map(p => p.events) || [], error: error?.message }
+  },
+
+  async getAllProfiles() {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    return { profiles: data || [], error: error?.message }
+  },
+
+  async getPendingEvents() {
+    const { data, error } = await supabase
+      .from('events')
+      .select('*')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+
+    return { events: data || [], error: error?.message }
+  },
+
+  async getAllEvents() {
+    const { data, error } = await supabase
+      .from('events')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    return { events: data || [], error: error?.message }
+  },
+
+  // =============================================
+  // Chat Functions
+  // =============================================
+
+  async getChatMessages(eventId: string) {
+    try {
+      const sevenDaysAgo = new Date()
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+      
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .select('*')
+        .eq('event_id', eventId)
+        .gte('created_at', sevenDaysAgo.toISOString())
+        .order('created_at', { ascending: true })
+        .limit(100)
+      
+      return { messages: data || [], error: error?.message }
+    } catch (error) {
+      return { messages: [], error: 'Failed to fetch messages' }
+    }
+  },
+
+  async sendChatMessage(eventId: string, userId: string, userName: string, message: string) {
+    try {
+      const { error } = await supabase
+        .from('chat_messages')
+        .insert({
+          event_id: eventId,
+          user_id: userId,
+          user_name: userName,
+          message: message
+        })
+      
+      return { success: !error, error: error?.message }
+    } catch (error) {
+      return { success: false, error: 'Failed to send message' }
+    }
+  }
+}
