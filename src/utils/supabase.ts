@@ -3243,6 +3243,23 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co'
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder-key'
 
+// Diagnostic logging for environment variables
+if (import.meta.env.DEV || window.location.hostname.includes('vercel')) {
+  console.log('🔧 Supabase Configuration:', {
+    url: supabaseUrl,
+    urlValid: supabaseUrl.startsWith('https://') && supabaseUrl.includes('.supabase.co'),
+    keyExists: !!supabaseAnonKey && supabaseAnonKey !== 'placeholder-key',
+    keyLength: supabaseAnonKey?.length || 0,
+    environment: import.meta.env.MODE
+  });
+  
+  // Warn if using placeholder values
+  if (supabaseUrl === 'https://placeholder.supabase.co' || supabaseAnonKey === 'placeholder-key') {
+    console.error('❌ Supabase environment variables not set!');
+    console.error('Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Vercel environment variables.');
+  }
+}
+
 // Initialize Supabase client with error handling
 let supabase;
 try {
@@ -3290,14 +3307,55 @@ export const auth = {
   },
 
   async signIn(email: string, password: string) {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-    return { 
-      success: !error, 
-      error: error?.message,
-      user: data.user
+    try {
+      // Check if Supabase is properly configured
+      if (supabaseUrl === 'https://placeholder.supabase.co' || supabaseAnonKey === 'placeholder-key') {
+        return {
+          success: false,
+          error: 'Supabase not configured. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.',
+          user: null
+        };
+      }
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        console.error('❌ Sign in error:', {
+          message: error.message,
+          status: error.status,
+          url: supabaseUrl
+        });
+        
+        // Provide more helpful error messages
+        let errorMessage = error.message;
+        if (error.message === 'Failed to fetch') {
+          errorMessage = 'Connection failed. Please check: 1) Supabase CORS settings include your Vercel domain, 2) Environment variables are set correctly, 3) Supabase project is active.';
+        } else if (error.message.includes('Invalid login credentials')) {
+          errorMessage = 'Invalid email or password. Please check your credentials.';
+        }
+        
+        return {
+          success: false,
+          error: errorMessage,
+          user: null
+        };
+      }
+
+      return { 
+        success: !error, 
+        error: error?.message,
+        user: data.user
+      };
+    } catch (err: any) {
+      console.error('❌ Sign in exception:', err);
+      return {
+        success: false,
+        error: err.message || 'Failed to connect to Supabase. Please check your network connection and Supabase configuration.',
+        user: null
+      };
     }
   },
 
