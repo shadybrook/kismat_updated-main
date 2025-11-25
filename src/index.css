@@ -2781,6 +2781,7 @@ body {
   font-weight: 500;
   color: var(--foreground);
   transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .kismat-chip:hover {
@@ -2794,6 +2795,36 @@ body {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* Mobile-specific utilities */
+.mobile-scroll {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+.mobile-safe-area {
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Prevent zoom on inputs for iOS */
+.no-zoom {
+  font-size: 16px !important;
+}
+
+/* Responsive text utilities */
+.text-responsive-sm {
+  font-size: clamp(0.75rem, 2.5vw, 0.875rem);
+}
+
+.text-responsive-base {
+  font-size: clamp(0.875rem, 3vw, 1rem);
+}
+
+.text-responsive-lg {
+  font-size: clamp(1rem, 4vw, 1.125rem);
 }
 
 .kismat-category-tabs {
@@ -2942,6 +2973,53 @@ body {
   .kismat-shell {
     padding-top: clamp(4.5rem, 7vw, 5.5rem);
   }
+
+  /* Mobile panel adjustments */
+  .kismat-panel {
+    margin: 0.5rem;
+    padding: clamp(1rem, 4vw, 1.5rem);
+    width: calc(100% - 1rem);
+  }
+
+  .kismat-screen {
+    padding: clamp(0.75rem, 3vw, 1.5rem);
+    gap: clamp(1rem, 3vw, 1.5rem);
+  }
+
+  /* Event cards responsive */
+  .kismat-events-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .kismat-event-card {
+    margin: 0;
+  }
+
+  /* Form elements mobile */
+  .kismat-category-tabs {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+  }
+
+  .kismat-category-tab {
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    min-width: auto;
+  }
+
+  /* Button adjustments */
+  [data-slot="button"] {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.9rem;
+  }
+
+  /* Input adjustments */
+  [data-slot="input"], [data-slot="select-trigger"] {
+    padding: 0.75rem 1rem;
+    font-size: 1rem; /* Prevent zoom on iOS */
+  }
 }
 
 @media (max-width: 480px) {
@@ -2960,6 +3038,107 @@ body {
   
   .kismat-shell {
     padding-top: clamp(4rem, 6vw, 5rem);
+  }
+
+  /* Extra small mobile adjustments */
+  .kismat-panel {
+    margin: 0.25rem;
+    padding: 1rem;
+    width: calc(100% - 0.5rem);
+    border-radius: 1rem;
+  }
+
+  .kismat-screen {
+    padding: 0.5rem;
+    gap: 1rem;
+  }
+
+  /* Typography scaling */
+  .kismat-title {
+    font-size: clamp(1.8rem, 6vw, 2.5rem);
+  }
+
+  .kismat-subtitle {
+    font-size: 0.9rem;
+  }
+
+  /* Event card mobile optimization */
+  .kismat-event-card__content {
+    padding: 1rem;
+    gap: 0.75rem;
+  }
+
+  .kismat-event-card__title {
+    font-size: 1rem;
+    line-height: 1.3;
+  }
+
+  .kismat-event-card__meta {
+    gap: 0.4rem;
+  }
+
+  .kismat-chip {
+    padding: 0.25rem 0.6rem;
+    font-size: 0.75rem;
+  }
+
+  /* Form elements extra small */
+  .kismat-category-tab {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+  }
+
+  [data-slot="button"] {
+    padding: 0.65rem 1.25rem;
+    font-size: 0.85rem;
+  }
+
+  /* Grid adjustments */
+  .grid-cols-2 {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  /* Image upload area */
+  .kismat-event-card__image {
+    height: 140px;
+  }
+
+  /* Progress bar */
+  .kismat-progress-bar {
+    height: 6px;
+  }
+}
+
+/* Landscape phone adjustments */
+@media (max-height: 500px) and (orientation: landscape) {
+  .kismat-screen {
+    min-height: 100vh;
+    padding: 1rem;
+  }
+
+  .kismat-panel {
+    margin: 0.5rem;
+    padding: 1rem;
+  }
+
+  .kismat-navbar {
+    padding: 0.4rem 1rem;
+  }
+}
+
+/* Touch-friendly improvements */
+@media (pointer: coarse) {
+  [data-slot="button"], .kismat-category-tab, .kismat-chip {
+    min-height: 44px; /* Apple's recommended touch target */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Larger touch targets for form elements */
+  [data-slot="input"], [data-slot="select-trigger"] {
+    min-height: 44px;
   }
 }
 
